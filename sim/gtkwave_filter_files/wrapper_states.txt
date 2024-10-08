@@ -1,0 +1,11 @@
+0 idle
+1 start
+2 wait_req_after_start
+3 wait_req
+4 wait_buf_valid
+5 pop
+6 valid_data
+7 check
+8 push
+9 wait_req_then_ack
+10 wait_ack
