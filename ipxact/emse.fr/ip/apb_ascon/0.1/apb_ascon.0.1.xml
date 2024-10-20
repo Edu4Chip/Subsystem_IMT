@@ -294,13 +294,13 @@
 						<ipxact:bitWidth>8</ipxact:bitWidth>
 					</ipxact:field>
 					<ipxact:field>
-						<ipxact:name>DATA_VALID</ipxact:name>
-						<ipxact:bitOffset>2</ipxact:bitOffset>
+						<ipxact:name>BUF_IN_VALID</ipxact:name>
+						<ipxact:bitOffset>1</ipxact:bitOffset>
 						<ipxact:bitWidth>1</ipxact:bitWidth>
 					</ipxact:field>
 					<ipxact:field>
-						<ipxact:name>CT_ACK</ipxact:name>
-						<ipxact:bitOffset>1</ipxact:bitOffset>
+						<ipxact:name>CT_READ_ACK</ipxact:name>
+						<ipxact:bitOffset>2</ipxact:bitOffset>
 						<ipxact:bitWidth>1</ipxact:bitWidth>
 					</ipxact:field>
 					<ipxact:field>
@@ -329,12 +329,17 @@
 						<ipxact:bitWidth>1</ipxact:bitWidth>
 					</ipxact:field>
 					<ipxact:field>
-						<ipxact:name>RDY</ipxact:name>
+						<ipxact:name>READY</ipxact:name>
 						<ipxact:bitOffset>0</ipxact:bitOffset>
 						<ipxact:bitWidth>1</ipxact:bitWidth>
 					</ipxact:field>
 					<ipxact:field>
-						<ipxact:name>CT_RDY</ipxact:name>
+						<ipxact:name>DATA_REQ</ipxact:name>
+						<ipxact:bitOffset>3</ipxact:bitOffset>
+						<ipxact:bitWidth>1</ipxact:bitWidth>
+					</ipxact:field>
+					<ipxact:field>
+						<ipxact:name>CT_READY</ipxact:name>
 						<ipxact:bitOffset>2</ipxact:bitOffset>
 						<ipxact:bitWidth>1</ipxact:bitWidth>
 					</ipxact:field>
@@ -895,14 +900,14 @@
 				<ipxact:name>../../../../../src/sv/rtl/apb_ascon.sv</ipxact:name>
 				<ipxact:fileType>systemVerilogSource</ipxact:fileType>
 				<ipxact:vendorExtensions>
-					<kactus2:hash>44ae97528ab97bcc0f5987cbfded3564f8630937</kactus2:hash>
+					<kactus2:hash>a04680e562a46d72e33bd7eae68976da793be2f3</kactus2:hash>
 				</ipxact:vendorExtensions>
 			</ipxact:file>
 			<ipxact:file>
 				<ipxact:name>../../../../../src/sv/rtl/ascon_fsm.sv</ipxact:name>
 				<ipxact:fileType>systemVerilogSource</ipxact:fileType>
 				<ipxact:vendorExtensions>
-					<kactus2:hash>d2c828cd45b9711908c8454dd28aaeaf2ff8588c</kactus2:hash>
+					<kactus2:hash>f32ce5fba00f556acd297f4df018af2fd2aa07a1</kactus2:hash>
 				</ipxact:vendorExtensions>
 			</ipxact:file>
 			<ipxact:file>
@@ -915,6 +920,9 @@
 			<ipxact:file>
 				<ipxact:name>../../../../../src/sv/rtl/ascon_top.sv</ipxact:name>
 				<ipxact:fileType>systemVerilogSource</ipxact:fileType>
+				<ipxact:vendorExtensions>
+					<kactus2:hash>1b9484969461352acfc3e6c7f8c9af9c6a077866</kactus2:hash>
+				</ipxact:vendorExtensions>
 			</ipxact:file>
 			<ipxact:file>
 				<ipxact:name>../../../../../src/sv/rtl/ascon_wrapper.sv</ipxact:name>
@@ -932,6 +940,10 @@
 				<ipxact:name>../../../../../src/sv/rtl/round_counter.sv</ipxact:name>
 				<ipxact:fileType>systemVerilogSource</ipxact:fileType>
 			</ipxact:file>
+			<ipxact:file>
+				<ipxact:name>../../../../../src/sv/rtl/timer.sv</ipxact:name>
+				<ipxact:fileType>systemVerilogSource</ipxact:fileType>
+			</ipxact:file>
 		</ipxact:fileSet>
 		<ipxact:fileSet>
 			<ipxact:name>Documentation</ipxact:name>
@@ -940,12 +952,18 @@
 				<ipxact:name>../../../../../doc/ascon.md</ipxact:name>
 				<ipxact:fileType user="markdown">user</ipxact:fileType>
 				<ipxact:description>File that contains the documentation for this component and subcomponents</ipxact:description>
+				<ipxact:vendorExtensions>
+					<kactus2:hash>166473f40ea995a5b2822b22db1ce963</kactus2:hash>
+				</ipxact:vendorExtensions>
 			</ipxact:file>
 			<ipxact:file>
 				<ipxact:name>../../../../../doc/images/emse.fr.ip.apb_ascon.0.1.png</ipxact:name>
 				<ipxact:fileType user="picture">user</ipxact:fileType>
 				<ipxact:fileType user="pngImage">user</ipxact:fileType>
 				<ipxact:description>Preview picture needed by the documentation.</ipxact:description>
+				<ipxact:vendorExtensions>
+					<kactus2:hash>e411f06e30092ff2574f4556f860de4a</kactus2:hash>
+				</ipxact:vendorExtensions>
 			</ipxact:file>
 		</ipxact:fileSet>
 	</ipxact:fileSets>
@@ -980,6 +998,9 @@
 		</kactus2:kts_attributes>
 		<kactus2:author>Alexandre Menu</kactus2:author>
 		<kactus2:license></kactus2:license>
+		<kactus2:sourceDirectories>
+			<kactus2:sourceDirectory>../../../../../src/sv</kactus2:sourceDirectory>
+		</kactus2:sourceDirectories>
 		<kactus2:fileDependencies>
 			<kactus2:fileDependency manual="false" bidirectional="false" locked="false">
 				<kactus2:fileRef1>../../../../../src/sv/rtl/apb_ascon.sv</kactus2:fileRef1>
@@ -1041,9 +1062,11 @@
 				<kactus2:fileRef2>../../../../../src/sv/rtl/ascon_top.sv</kactus2:fileRef2>
 				<ipxact:description>Submodule instantiation of module ascon_top</ipxact:description>
 			</kactus2:fileDependency>
+			<kactus2:fileDependency manual="false" bidirectional="false" locked="false">
+				<kactus2:fileRef1>../../../../../src/sv/rtl/ascon_top.sv</kactus2:fileRef1>
+				<kactus2:fileRef2>../../../../../src/sv/rtl/timer.sv</kactus2:fileRef2>
+				<ipxact:description>Submodule instantiation of module timer</ipxact:description>
+			</kactus2:fileDependency>
 		</kactus2:fileDependencies>
-		<kactus2:sourceDirectories>
-			<kactus2:sourceDirectory>../../../../../src/sv</kactus2:sourceDirectory>
-		</kactus2:sourceDirectories>
 	</ipxact:vendorExtensions>
 </ipxact:component>
