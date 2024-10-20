@@ -1,3 +1,3 @@
-# Ascon crypto-accelerator
+# SoC 
 
-SoC documentation is organized here. This is landing page for various HTML parsers.
+soc documentation is organized here. This is landing page for various HTML parsers.
