@@ -19,6 +19,7 @@ VERILOG_SOURCES += $(SRC_DIR)/ascon_top.sv
 VERILOG_SOURCES += $(SRC_DIR)/block_counter.sv
 VERILOG_SOURCES += $(SRC_DIR)/permutation.sv
 VERILOG_SOURCES += $(SRC_DIR)/round_counter.sv
+VERILOG_SOURCES += $(SRC_DIR)/timer.sv
 
 VERILOG_INCLUDE_DIRS += $(ROOT_DIR)/include
 

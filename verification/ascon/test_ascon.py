@@ -90,6 +90,7 @@ def setup_enc(dut, vec: ascon_kat_vectors.Vector):
     # set the sizes of the padded inputs
     ad_size = len(vec.ad) // 8
     pt_size = len(vec.pt) // 8
+    dut.delay_i.value = 0
     dut.ad_size_i.value = ad_size
     dut.pt_size_i.value = pt_size
 

@@ -60,10 +60,17 @@ module apb_ascon #(
   parameter int REG_AW = APB_REG_NO > 1 ? $clog2(APB_REG_NO) : 1;
 
   // address of APB registers
-  parameter logic [REG_AW-1:0] CTRL = 0, STATUS = 1, KEY = 2,
-   NONCE = 6, TAG = 10, DATAIN = 14, DATAOUT = 22;
+  parameter logic [REG_AW-1:0] CTRL = 0;
+  parameter logic [REG_AW-1:0] STATUS = 1;
+  parameter logic [REG_AW-1:0] KEY = 2;
+  parameter logic [REG_AW-1:0] NONCE = 6;
+  parameter logic [REG_AW-1:0] TAG = 10;
+  parameter logic [REG_AW-1:0] DATAIN = 14;
+  parameter logic [REG_AW-1:0] DATAOUT = 22;
   // offset of fields in CTRL register
-  parameter int AD_BLK_NO = 16, PT_BLK_NO = 24;
+  parameter int AD_BLK_NO_BIT = 16;
+  parameter int PT_BLK_NO_BIT = 24;
+  parameter int DELAY_BIT = 8;
 
   parameter logic [APB_REG_NO-1:0] READONLY_REG = {
     {DATA_REG_NO{1'b1}},
@@ -87,6 +94,7 @@ module apb_ascon #(
   logic ct_read_ack_s;
   logic [BLK_AD_AW-1:0] ad_size_s;
   logic [BLK_PT_AW-1:0] pt_size_s;
+  logic [7:0] delay_s;
   logic [127:0] key_s;
   logic [127:0] nonce_s;
   buffer_t data_s;
@@ -141,8 +149,9 @@ module apb_ascon #(
     `FFL(reg_s.regs[i], n_reg_s.regs[i], load_reg_s[i], 0, clk_in, reset_int)
   end
 
-  assign ad_size_s = reg_s.regs[CTRL][AD_BLK_NO+:BLK_AD_AW];
-  assign pt_size_s = reg_s.regs[CTRL][PT_BLK_NO+:BLK_PT_AW];
+  assign ad_size_s = reg_s.regs[CTRL][AD_BLK_NO_BIT+:BLK_AD_AW];
+  assign pt_size_s = reg_s.regs[CTRL][PT_BLK_NO_BIT+:BLK_PT_AW];
+  assign delay_s = reg_s.regs[CTRL][DELAY_BIT+:8];
   assign key_s = {<<APB_DW{reg_s[KEY*APB_DW+:128]}};
   assign nonce_s = {<<APB_DW{reg_s[NONCE*APB_DW+:128]}};
   for (genvar i = 0; i < BUF_DEPTH; i++) begin : gen_data
@@ -172,6 +181,7 @@ module apb_ascon #(
       .nonce_i      (nonce_s),
       .ad_size_i    (ad_size_s),
       .pt_size_i    (pt_size_s),
+      .delay_i      (delay_s),
       .start_i      (start_s),
       .data_valid_i (data_valid_s),
       .ct_read_ack_i(ct_read_ack_s),

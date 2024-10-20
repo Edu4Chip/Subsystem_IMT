@@ -35,6 +35,11 @@ module ascon_fsm (
     output logic load_rnd_cnt_o,
     output logic sel_p12_init_o,
 
+    // Delay counter
+    input logic timeout_i,
+    output logic en_timer_o,
+    output logic load_timer_o,
+
     // Permutation round
     output logic sel_state_init_o,
     output logic sel_xor_init_o,
@@ -48,6 +53,7 @@ module ascon_fsm (
   typedef enum logic [4:0] {
     idle,
     start,
+    wait_delay,
     ini_sta,
     ini_mid,
     ini_end,
@@ -86,6 +92,9 @@ module ascon_fsm (
     load_rnd_cnt_o = 0;
     sel_p12_init_o = 0;
 
+    en_timer_o = 0;
+    load_timer_o = 0;
+
     sel_state_init_o = 0;
     sel_xor_init_o = 0;
     sel_xor_ext_o = 0;
@@ -115,7 +124,18 @@ module ascon_fsm (
         en_rnd_cnt_o = 1;
         load_rnd_cnt_o = 1;
         sel_p12_init_o = 1;
-        n_state_s = ini_sta;
+        // reload the timer
+        en_timer_o = 1;
+        load_timer_o = 1;
+        n_state_s = wait_delay;
+      end
+      wait_delay: begin
+        en_timer_o = 1;
+        if (timeout_i) begin
+          n_state_s = ini_sta;
+        end else begin
+          n_state_s = wait_delay;
+        end
       end
       ini_sta: begin
         load_state_o = 1;

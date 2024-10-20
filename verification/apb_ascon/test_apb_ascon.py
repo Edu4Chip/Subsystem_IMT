@@ -15,6 +15,7 @@ from typing import Iterable, Optional
 
 PERIOD = 100
 TIMEOUT = (25, 'us')
+PROG_DELAY = 10
 
 
 class Reg(enum.IntEnum):
@@ -202,7 +203,7 @@ async def apb_write_ctrl(
     await apb_write(dut, Reg.CTRL, data)
 
 
-async def test_ascon_vector(dut, vec: ascon_kat_vectors.Vector):
+async def test_ascon_vector(dut, vec: ascon_kat_vectors.Vector, delay: int = 0):
     """Simulate a transaction with the DUT given a test vector."""
     cocotb.log.info(f'running test Count = {vec.count}...')
     start_time = cocotb.utils.get_sim_time('ns')
@@ -238,6 +239,7 @@ async def test_ascon_vector(dut, vec: ascon_kat_vectors.Vector):
     await apb_write_blocks(dut, Reg.DATAIN, blk)
     cocotb.log.info('...write CTRL register')
     cfg = CtrlCfg(
+        delay=delay,
         ad_size=len(vec.ad) // 8,
         pt_size=len(vec.pt) // 8,
     )
@@ -308,7 +310,7 @@ async def test_ascon(dut):
     sample_count = get_int_param('SAMPLE_COUNT')
     if sample_count is not None:
         vec = ascon_kat_vectors.get(sample_count)
-        await cocotb.triggers.with_timeout(test_ascon_vector(dut, vec), *TIMEOUT)
+        await cocotb.triggers.with_timeout(test_ascon_vector(dut, vec, delay=PROG_DELAY), *TIMEOUT)
     else:
         params = {
             'k': get_int_param('SAMPLE_SIZE'),
@@ -316,4 +318,4 @@ async def test_ascon(dut):
             'pt_size': get_int_param('PT_SIZE'),
         }
         for vec in ascon_kat_vectors.select(**params):
-            await cocotb.triggers.with_timeout(test_ascon_vector(dut, vec), *TIMEOUT)
+            await cocotb.triggers.with_timeout(test_ascon_vector(dut, vec, delay=PROG_DELAY), *TIMEOUT)

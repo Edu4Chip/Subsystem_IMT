@@ -13,6 +13,7 @@ module ascon_top
     input logic [127:0] nonce_i,
     input logic [BLK_AD_AW-1:0] ad_size_i,
     input logic [BLK_PT_AW-1:0] pt_size_i,
+    input logic [7:0] delay_i,
     input logic start_i,
     input logic data_valid_i,
     output logic data_req_o,
@@ -50,6 +51,11 @@ module ascon_top
   logic sel_p12_init_s;
   logic [3:0] round_s;
   logic n_last_rnd_o;
+
+  // Timer
+  logic en_timer_s;
+  logic load_timer_s;
+  logic timeout_s;
 
   // Permutation round
   logic sel_state_init_s;
@@ -102,6 +108,17 @@ module ascon_top
       .n_last_rnd_o  (n_last_rnd_o)
   );
 
+  timer #(
+      .WIDTH(8)
+  ) u_timer (
+      .clk_i    (clk_i),
+      .rst_n_i  (rst_n_i),
+      .en_i     (en_timer_s),
+      .load_i   (load_timer_s),
+      .count_i  (delay_i),
+      .timeout_o(timeout_s)
+  );
+
   permutation u_permutation (
       .round_i          (round_s),
       .sel_state_init_i (sel_state_init_s),
@@ -150,6 +167,10 @@ module ascon_top
       .en_rnd_cnt_o     (en_rnd_cnt_s),
       .load_rnd_cnt_o   (load_rnd_cnt_s),
       .sel_p12_init_o   (sel_p12_init_s),
+      // Delay counter
+      .timeout_i        (timeout_s),
+      .en_timer_o       (en_timer_s),
+      .load_timer_o     (load_timer_s),
       // Permutation round
       .sel_state_init_o (sel_state_init_s),
       .sel_xor_init_o   (sel_xor_init_s),
