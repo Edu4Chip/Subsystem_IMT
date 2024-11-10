@@ -299,11 +299,11 @@ module ascon_fsm (
         load_state_o  = 1;
         // produce the tag
         sel_xor_tag_o = 1;
-        tag_valid_o   = 1;
         n_state_s = done;
       end
       done: begin
         // wait for a new computation
+        tag_valid_o   = 1;
         ready_o = 1;
         done_o  = 1;
         if (start_i) begin

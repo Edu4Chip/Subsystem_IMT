@@ -1,39 +1,43 @@
 `timescale 1ns / 1ps
 `include "registers.svh"
 
-module round_counter #(
-    parameter int WIDTH = 4
-) (
+module round_counter
+  import ascon_pack::*;
+(
     input logic clk_i,
     input logic rst_n_i,
     input logic en_i,
     input logic load_i,
     input logic sel_p12_init_i,
-    output logic [WIDTH-1:0] round_o,
+    output logic [RND_WIDTH-1:0] round_o,
     output logic n_last_rnd_o
 );
-  localparam logic [WIDTH-1:0] RoundP12 = 0;
-  localparam logic [WIDTH-1:0] RoundP6 = RoundP12 + 6;
-  localparam logic [WIDTH-1:0] LastRound = 11;
+  localparam logic [RND_WIDTH-1:0] InitRndP12 = 0;
+  localparam logic [RND_WIDTH-1:0] InitRndP6 = 6;
+  localparam logic [RND_WIDTH-1:0] BeforeLastRound = 10;
+  localparam logic [RND_WIDTH-1:0] MaxRndValue = 11;
 
-  logic [WIDTH-1:0] round_s, n_round_s;
+  logic [RND_WIDTH-1:0] rnd_q, rnd_d;
+  logic last_rnd_s;
+
+  assign last_rnd_s = (rnd_q == MaxRndValue);
 
   // round counter logic
   always_comb begin
-    n_round_s = 0;
+    rnd_d = rnd_q;
     if (load_i) begin
       if (sel_p12_init_i) begin
-        n_round_s = RoundP12;
+        rnd_d = InitRndP12;
       end else begin
-        n_round_s = RoundP6;
+        rnd_d = InitRndP6;
       end
-    end else begin
-      n_round_s = round_s + 1;
+    end else if (!last_rnd_s) begin
+      rnd_d = rnd_q + 1'b1;
     end
   end
-  assign round_o = round_s;
-  assign n_last_rnd_o = round_s == (LastRound - 1);
+  assign round_o = rnd_q;
+  assign n_last_rnd_o = (rnd_q == BeforeLastRound);
 
-  `FFL(round_s, n_round_s, en_i, 0, clk_i, rst_n_i)
+  `FFL(rnd_q, rnd_d, en_i, 0, clk_i, rst_n_i)
 
 endmodule

@@ -1,58 +1,76 @@
 `timescale 1ns / 1ps
-`include "ascon.svh"
+`include "registers.svh"
+
+// helper macros
+`define _RROT64(__d, __n) {__d[__n-1:0], __d[63:__n]}
+`define _DIFF64(__d, __n1, __n2) __d ^ `_RROT64(__d, __n1) ^ `_RROT64(__d, __n2)
+`define _COL5(__d, __i) {__d[0][__i], __d[1][__i], __d[2][__i], __d[3][__i], __d[4][__i]}
 
 module permutation
   import ascon_pack::*;
 (
-    input logic [3:0] round_i,
-
+    input logic clk,
+    input logic rst_n,
+    input logic en_state_i,
+    // Round counter
+    input logic [RND_WIDTH-1:0] rnd_i,
+    // FSM
     input logic sel_state_init_i,
     input logic sel_xor_init_i,
     input logic sel_xor_ext_i,
     input logic sel_xor_dom_sep_i,
     input logic sel_xor_fin_i,
     input logic sel_xor_tag_i,
-
     input logic ct_valid_i,
     input logic tag_valid_i,
-
-    input logic [127:0] key_i,
-    input logic [127:0] nonce_i,
-    input logic [ 63:0] data_i,
-
-    input type_state state_i,
-    output type_state state_o,
-    output logic [63:0] ciphertext_o,
-    output logic [127:0] tag_o
+    // Ascon
+    input u128_t key_i,
+    input u128_t nonce_i,
+    input u64_t data_i,
+    output u64_t ct_o,
+    output u128_t tag_o
 );
-  type_state state1_mux_s;
-  type_state state2_in_s;
-  type_state state3_add_s;
-  type_state state4_sbox_s;
-  type_state state5_diff_s;
-  type_state state6_xor_key_s;
-  type_state state7_out_s;
+  ascon_state_t state_q, state_d;
+  ascon_state_t state1_mux_s;
+  ascon_state_t state2_in_s;
+  ascon_state_t state3_add_s;
+  ascon_state_t state4_sbox_s;
+  ascon_state_t state5_diff_s;
+  ascon_state_t state6_xor_key_s;
 
-  logic [7:0] round_constant_s;
+  u64_t l_key_s, r_key_s;
+  u64_t l_nonce_s, r_nonce_s;
+  u8_t  round_constant_s;
   logic sel_xor_key_s;
 
+  // split the key into two data blocks
+  assign {l_key_s, r_key_s} = key_i;
+  assign {l_nonce_s, r_nonce_s} = nonce_i;
+
   // load the initial state
-  assign state1_mux_s = sel_state_init_i ? {FixedIV, key_i, nonce_i} : state_i;
+  assign state1_mux_s[0] = sel_state_init_i ? Ascon128IV : state_q[0];
+  assign state1_mux_s[1] = sel_state_init_i ? l_key_s : state_q[1];
+  assign state1_mux_s[2] = sel_state_init_i ? r_key_s : state_q[2];
+  assign state1_mux_s[3] = sel_state_init_i ? l_nonce_s : state_q[3];
+  assign state1_mux_s[4] = sel_state_init_i ? r_nonce_s : state_q[4];
+
+  // output the tag when it is valid
+  assign tag_o = tag_valid_i ? {state_q[3], state_q[4]} : 128'd0;
 
   // XOR the external state with a data bloc
   assign state2_in_s[0] = sel_xor_ext_i ? state1_mux_s[0] ^ data_i : state1_mux_s[0];
   // XOR part of the internal state with the secret key
   // at the beginning of the finalization
-  assign state2_in_s[1] = sel_xor_fin_i ? state1_mux_s[1] ^ key_i[127:64] : state1_mux_s[1];
-  assign state2_in_s[2] = sel_xor_fin_i ? state1_mux_s[2] ^ key_i[63:0] : state1_mux_s[2];
+  assign state2_in_s[1] = sel_xor_fin_i ? state1_mux_s[1] ^ l_key_s : state1_mux_s[1];
+  assign state2_in_s[2] = sel_xor_fin_i ? state1_mux_s[2] ^ r_key_s : state1_mux_s[2];
   assign state2_in_s[3] = state1_mux_s[3];
   assign state2_in_s[4] = state1_mux_s[4];
 
-  // generate the ciphertext
-  assign ciphertext_o = ct_valid_i ? state2_in_s[0] : 0;
+  // output the ciphertext when it is valid
+  assign ct_o = ct_valid_i ? state2_in_s[0] : 64'd0;
 
   // addition layer
-  assign round_constant_s = RoundConstant[round_i];
+  assign round_constant_s = RndConst[rnd_i];
   assign state3_add_s[0] = state2_in_s[0];
   assign state3_add_s[1] = state2_in_s[1];
   assign state3_add_s[2] = state2_in_s[2] ^ {56'd0, round_constant_s};
@@ -61,41 +79,44 @@ module permutation
 
   // substitution layer
   for (genvar i = 0; i < 64; i++) begin : gen_sbox
-    `SBOX5(state4_sbox_s, state3_add_s, Sbox, i)
+    assign `_COL5(state4_sbox_s, i) = Sbox[`_COL5(state3_add_s, i)];
   end
 
   // diffusion layer
-  `DIFF64(state5_diff_s[0], state4_sbox_s[0], 19, 28)
-  `DIFF64(state5_diff_s[1], state4_sbox_s[1], 61, 39)
-  `DIFF64(state5_diff_s[2], state4_sbox_s[2], 1, 6)
-  `DIFF64(state5_diff_s[3], state4_sbox_s[3], 10, 17)
-  `DIFF64(state5_diff_s[4], state4_sbox_s[4], 7, 41)
+  assign state5_diff_s[0] = `_DIFF64(state4_sbox_s[0], 19, 28);
+  assign state5_diff_s[1] = `_DIFF64(state4_sbox_s[1], 61, 39);
+  assign state5_diff_s[2] = `_DIFF64(state4_sbox_s[2], 1, 6);
+  assign state5_diff_s[3] = `_DIFF64(state4_sbox_s[3], 10, 17);
+  assign state5_diff_s[4] = `_DIFF64(state4_sbox_s[4], 7, 41);
 
   // XOR part of the internal state with the secret key
   // either at the end of the initialization
   // or at the end of the finalization to generate the tag
-  assign sel_xor_key_s = sel_xor_init_i | sel_xor_tag_i;
+  assign sel_xor_key_s = sel_xor_init_i || sel_xor_tag_i;
 
   assign state6_xor_key_s[0] = state5_diff_s[0];
   assign state6_xor_key_s[1] = state5_diff_s[1];
   assign state6_xor_key_s[2] = state5_diff_s[2];
-  assign state6_xor_key_s[3] = sel_xor_key_s ? state5_diff_s[3] ^ key_i[127:64] : state5_diff_s[3];
-  assign state6_xor_key_s[4] = sel_xor_key_s ? state5_diff_s[4] ^ key_i[63:0] : state5_diff_s[4];
+  assign state6_xor_key_s[3] = sel_xor_key_s ? state5_diff_s[3] ^ l_key_s : state5_diff_s[3];
+  assign state6_xor_key_s[4] = sel_xor_key_s ? state5_diff_s[4] ^ r_key_s : state5_diff_s[4];
 
   // XOR part of the internal state with the domain separation constant
   // at the end of the processing of the associated data
   // or at the end of the initialization if the associated data is missing
-  assign state7_out_s[0] = state6_xor_key_s[0];
-  assign state7_out_s[1] = state6_xor_key_s[1];
-  assign state7_out_s[2] = state6_xor_key_s[2];
-  assign state7_out_s[3] = state6_xor_key_s[3];
-  assign state7_out_s[4] = sel_xor_dom_sep_i ? state6_xor_key_s[4] ^ 64'd1 : state6_xor_key_s[4];
+  assign state_d[0] = state6_xor_key_s[0];
+  assign state_d[1] = state6_xor_key_s[1];
+  assign state_d[2] = state6_xor_key_s[2];
+  assign state_d[3] = state6_xor_key_s[3];
+  assign state_d[4] = sel_xor_dom_sep_i ? state6_xor_key_s[4] ^ DomSepConst : state6_xor_key_s[4];
 
-  // generate the tag
-  assign tag_o = tag_valid_i ? {state7_out_s[3], state7_out_s[4]} : 0;
-
-  // output the state of the permutation
-  assign state_o = state7_out_s;
+  // state register
+  for (genvar i=0; i<5; ++i) begin: gen_state
+    `FFL(state_q[i], state_d[i], en_state_i, 64'd0, clk, rst_n)
+  end
 
 endmodule
 
+// cleanup macros
+`undef _RROT64
+`undef _DIFF64
+`undef _COL5

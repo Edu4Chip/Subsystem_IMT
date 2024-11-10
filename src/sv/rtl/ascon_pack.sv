@@ -1,10 +1,20 @@
 package ascon_pack;
+  // types
+  typedef logic [127:0] u128_t;
+  typedef logic [63:0] u64_t;
+  typedef logic [31:0] u32_t;
+  typedef logic [7:0] u8_t;
+  typedef logic [3:0] rnd_t;
+  typedef u64_t ascon_state_t [5];
 
-  // 320-bit state as 5 64-bit words
-  typedef logic [0:4][63:0] type_state;
+  // Permutation
+  parameter u64_t Ascon128IV = 64'h80400c0600000000;
+  parameter u64_t DomSepConst = 64'd1;
+  // Round counter
+  parameter int unsigned RND_WIDTH = 4;
 
-  // Round constant for constant addition
-  localparam logic [7:0] RoundConstant[12] = {
+  // Round constants for the constant addition
+  parameter u8_t RndConst[16] = {
     8'hF0,
     8'hE1,
     8'hD2,
@@ -16,11 +26,15 @@ package ascon_pack;
     8'h78,
     8'h69,
     8'h5A,
-    8'h4B
+    8'h4B,
+    8'h00,
+    8'h00,
+    8'h00,
+    8'h00
   };
 
   // ASCON Sbox (array)
-  localparam logic [4:0] Sbox[32] = {
+  parameter logic [4:0] Sbox[32] = {
     5'h04,
     5'h0B,
     5'h1F,
@@ -54,8 +68,5 @@ package ascon_pack;
     5'h0F,
     5'h17
   };
-
-  // Ascon IV
-  localparam logic [63:0] FixedIV = 64'h80400c0600000000;
 
 endpackage

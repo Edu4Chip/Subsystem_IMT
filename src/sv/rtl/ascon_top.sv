@@ -30,8 +30,7 @@ module ascon_top
   logic [63:0] data_s;
 
   // State register
-  logic load_state_s;
-  type_state state_s, n_state_s;
+  logic en_state_s;
 
   // AD block counter
   logic en_ad_cnt_s;
@@ -68,7 +67,6 @@ module ascon_top
   logic tag_valid_s;
 
   `FF(data_s, data_i, 0, clk_i, rst_n_i)
-  `FFL(state_s, n_state_s, load_state_s, 0, clk_i, rst_n_i)
 
   block_counter #(
       .WIDTH(BLK_AD_AW)
@@ -96,9 +94,7 @@ module ascon_top
       .last_blk_o(last_pt_blk_s)
   );
 
-  round_counter #(
-      .WIDTH(4)
-  ) u_round_counter (
+  round_counter u_round_counter (
       .clk_i         (clk_i),
       .rst_n_i       (rst_n_i),
       .en_i          (en_rnd_cnt_s),
@@ -120,7 +116,12 @@ module ascon_top
   );
 
   permutation u_permutation (
-      .round_i          (round_s),
+      .clk              (clk_i),
+      .rst_n            (rst_n_i),
+      .en_state_i       (en_state_s),
+      // Round counter
+      .rnd_i            (round_s),
+      // FSM
       .sel_state_init_i (sel_state_init_s),
       .sel_xor_init_i   (sel_xor_init_s),
       .sel_xor_ext_i    (sel_xor_ext_s),
@@ -129,12 +130,11 @@ module ascon_top
       .sel_xor_tag_i    (sel_xor_tag_s),
       .ct_valid_i       (ct_valid_s),
       .tag_valid_i      (tag_valid_s),
+      // Ascon
       .key_i            (key_i),
       .nonce_i          (nonce_i),
       .data_i           (data_s),
-      .state_i          (state_s),
-      .state_o          (n_state_s),
-      .ciphertext_o     (ct_o),
+      .ct_o             (ct_o),
       .tag_o            (tag_o)
   );
 
@@ -153,7 +153,7 @@ module ascon_top
       .ready_o          (ready_o),
       .done_o           (done_o),
       // State register
-      .load_state_o     (load_state_s),
+      .load_state_o     (en_state_s),
       // AD block counter
       .last_ad_blk_i    (last_ad_blk_s),
       .en_ad_cnt_o      (en_ad_cnt_s),
