@@ -10,7 +10,7 @@
 // whose XML file is /home/menu/work/subsystem_imt/ipxact/emse.fr/ip/apb_ascon/0.1/apb_ascon.0.1.xml
 //-----------------------------------------------------------------------------
 
-module apb_ascon #(
+module top_ascon #(
     parameter int unsigned APB_AW    = 10,
     parameter int unsigned APB_DW    = 32,
     parameter int unsigned FifoDepth = 4,

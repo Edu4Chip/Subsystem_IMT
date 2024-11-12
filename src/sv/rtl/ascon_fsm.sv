@@ -2,7 +2,11 @@
 `include "registers.svh"
 
 
-module ascon_fsm (
+module ascon_fsm #(
+    parameter int unsigned ROUND_WIDTH = 4,
+    parameter int unsigned DataAddrWidth = 7,
+    parameter int unsigned DelayWidth = 16
+) (
     // Clock
     input logic clk_i,
 
@@ -30,23 +34,26 @@ module ascon_fsm (
     output logic ct_flush_o,
 
     // AD block counter
-    input  logic last_ad_blk_i,
+    input logic [DataAddrWidth-1:0] ad_size_i,
+    input logic [DataAddrWidth-1:0] ad_cnt_i,
     output logic en_ad_cnt_o,
     output logic load_ad_cnt_o,
 
     // PT block counter
-    input  logic pt_cnt_end_i,
+    input logic [DataAddrWidth-1:0] pt_size_i,
+    input logic [DataAddrWidth-1:0] pt_cnt_i,
     output logic en_pt_cnt_o,
     output logic load_pt_cnt_o,
 
     // Round counter
-    input  logic n_last_rnd_i,
+    input logic [ROUND_WIDTH-1:0] rnd_i,
     output logic en_rnd_cnt_o,
     output logic load_rnd_cnt_o,
-    output logic sel_p12_init_o,
+    output logic [ROUND_WIDTH-1:0] init_rnd_o,
 
     // Delay counter
-    input  logic timeout_i,
+    input  logic [DelayWidth-1:0] delay_i,
+    input  logic [DelayWidth-1:0] timer_i,
     output logic en_timer_o,
     output logic load_timer_o,
 
@@ -61,6 +68,10 @@ module ascon_fsm (
     output logic ct_valid_o,
     output logic tag_valid_o
 );
+  localparam logic [ROUND_WIDTH-1:0] InitRndP12 = 0;
+  localparam logic [ROUND_WIDTH-1:0] InitRndP6 = 6;
+  localparam logic [ROUND_WIDTH-1:0] BeforeLastRnd = 10;
+
   typedef enum logic [4:0] {
     idle,
     start,
@@ -87,6 +98,15 @@ module ascon_fsm (
 
   state_t state_s, n_state_s;
 
+  logic last_ad_s;
+  logic before_last_pt_s;
+  logic before_last_rnd_s;
+    logic sel_p12_init_o;
+
+  assign last_ad_s = (ad_cnt_i == ad_size_i);
+  assign before_last_pt_s = (pt_cnt_i == pt_size_i);
+  assign before_last_rnd_s = (rnd_i == BeforeLastRnd);
+
   always_comb begin
     ready_o = 0;
     sel_ad_o = 0;
@@ -101,9 +121,9 @@ module ascon_fsm (
     load_ad_cnt_o = 0;
     en_pt_cnt_o = 0;
     load_pt_cnt_o = 0;
+    init_rnd_o = InitRndP6;
     en_rnd_cnt_o = 0;
     load_rnd_cnt_o = 0;
-    sel_p12_init_o = 0;
     en_timer_o = 0;
     load_timer_o = 0;
     sel_state_init_o = 0;
@@ -130,23 +150,19 @@ module ascon_fsm (
       end
       start: begin
         // initialize the PT block counter
-        en_pt_cnt_o = 1;
         load_pt_cnt_o = 1;
         // initialize the AD block counter
-        en_ad_cnt_o = 1;
         load_ad_cnt_o = 1;
         // initialize the round counter
-        en_rnd_cnt_o = 1;
         load_rnd_cnt_o = 1;
-        sel_p12_init_o = 1;
+        init_rnd_o = InitRndP12;
         // reload the timer
-        en_timer_o = 1;
         load_timer_o = 1;
         n_state_s = wait_delay;
       end
       wait_delay: begin
         en_timer_o = 1;
-        if (timeout_i) begin
+        if (timer_i == delay_i) begin
           n_state_s = ini_sta;
         end else begin
           n_state_s = wait_delay;
@@ -164,8 +180,8 @@ module ascon_fsm (
       ini_mid: begin
         load_state_o = 1;
         en_rnd_cnt_o = 1;
-        if (n_last_rnd_i) begin
-          if (last_ad_blk_i) begin
+        if (before_last_rnd_s) begin
+          if (last_ad_s) begin
             n_state_s = ini_end_no_ad;
           end else begin
             n_state_s = ini_end;
@@ -179,7 +195,7 @@ module ascon_fsm (
         sel_xor_init_o = 1;
         // add the domain separation constant before processing the plaintext
         sel_xor_dom_sep_o = 1;
-        if (pt_cnt_end_i) begin
+        if (before_last_pt_s) begin
           n_state_s = wait_last_pt;
         end else begin
           n_state_s = wait_pt;
@@ -192,7 +208,6 @@ module ascon_fsm (
       end
       wait_ad: begin
         // reinitialize the round counter
-        en_rnd_cnt_o   = 1;
         load_rnd_cnt_o = 1;
         if (!ad_empty_i) begin
           n_state_s = ad_sta;
@@ -213,8 +228,8 @@ module ascon_fsm (
       ad_mid: begin
         load_state_o = 1;
         en_rnd_cnt_o = 1;
-        if (n_last_rnd_i) begin
-          if (last_ad_blk_i) begin
+        if (before_last_rnd_s) begin
+          if (last_ad_s) begin
             n_state_s = end_ad;
           end else begin
             n_state_s = end_ad_blk;
@@ -231,7 +246,7 @@ module ascon_fsm (
         load_state_o = 1;
         // add the domain separation constant before processing the plaintext
         sel_xor_dom_sep_o = 1;
-        if (pt_cnt_end_i) begin
+        if (before_last_pt_s) begin
           n_state_s = wait_last_pt;
         end else begin
           n_state_s = wait_pt;
@@ -239,7 +254,6 @@ module ascon_fsm (
       end
       wait_pt: begin
         // reinitialize the round counter
-        en_rnd_cnt_o   = 1;
         load_rnd_cnt_o = 1;
         if (!pt_empty_i && !ct_full_i) begin
           n_state_s = pt_sta;
@@ -261,7 +275,7 @@ module ascon_fsm (
       pt_mid: begin
         load_state_o = 1;
         en_rnd_cnt_o = 1;
-        if (n_last_rnd_i) begin
+        if (before_last_rnd_s) begin
           n_state_s = pt_end;
         end else begin
           n_state_s = pt_mid;
@@ -269,7 +283,7 @@ module ascon_fsm (
       end
       pt_end: begin
         load_state_o = 1;
-        if (pt_cnt_end_i) begin
+        if (before_last_pt_s) begin
           n_state_s = wait_last_pt;
         end else begin
           n_state_s = wait_pt;
@@ -277,9 +291,8 @@ module ascon_fsm (
       end
       wait_last_pt: begin
         // reinitialize the round counter
-        en_rnd_cnt_o   = 1;
         load_rnd_cnt_o = 1;
-        sel_p12_init_o = 1;
+        init_rnd_o = InitRndP12;
         if (!pt_empty_i && !ct_full_i) begin
           n_state_s = fin_sta;
         end else begin
@@ -300,7 +313,7 @@ module ascon_fsm (
       fin_mid: begin
         load_state_o = 1;
         en_rnd_cnt_o = 1;
-        if (n_last_rnd_i) begin
+        if (before_last_rnd_s) begin
           n_state_s = fin_end;
         end else begin
           n_state_s = fin_mid;

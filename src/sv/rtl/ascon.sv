@@ -3,6 +3,7 @@
 module ascon
   import ascon_pack::*;
 #(
+    parameter int ROUND_WIDTH = 4,
     parameter int DataAddrWidth = 7,
     parameter int DelayWidth = 16
 ) (
@@ -45,25 +46,26 @@ module ascon
   logic en_ad_cnt_s;
   logic load_ad_cnt_s;
   logic [DataAddrWidth-1:0] ad_cnt_s;
-  logic last_ad_blk_s;
+  logic ad_cnt_of_s;
 
   // PT block counter
   logic en_pt_cnt_s;
   logic load_pt_cnt_s;
   logic [DataAddrWidth-1:0] pt_cnt_s;
-  logic last_pt_blk_s;
+  logic pt_cnt_of_s;
 
   // Round counter
   logic en_rnd_cnt_s;
   logic load_rnd_cnt_s;
-  logic sel_p12_init_s;
-  logic [3:0] round_s;
-  logic n_last_rnd_s;
+  logic [ROUND_WIDTH-1:0] init_rnd_s;
+  logic [ROUND_WIDTH-1:0] rnd_s;
+  logic rnd_of_s;
 
   // Timer
   logic en_timer_s;
   logic load_timer_s;
-  logic timeout_s;
+  logic [DelayWidth-1:0] timer_s;
+  logic timer_of_s;
 
   // Permutation round
   logic en_state_s;
@@ -76,51 +78,52 @@ module ascon
   logic sel_xor_tag_s;
   logic ct_valid_s;
 
-  block_counter #(
+  counter #(
       .WIDTH(DataAddrWidth)
-  ) u_block_counter_ad (
-      .clk_i     (clk_i),
-      .rst_n_i   (rst_n_i),
+  ) u_ad_block_counter (
+      .clk       (clk_i),
+      .rst_n     (rst_n_i),
       .en_i      (en_ad_cnt_s),
       .load_i    (load_ad_cnt_s),
-      .blk_no_i  (ad_size_i),
-      .blk_cnt_i (0),
-      .blk_cnt_o (ad_cnt_s),
-      .last_blk_o(last_ad_blk_s)
+      .cnt_i     ('0),
+      .cnt_o     (ad_cnt_s),
+      .overflow_o(ad_cnt_of_s)
   );
 
-  block_counter #(
+  counter #(
       .WIDTH(DataAddrWidth)
-  ) u_block_counter_pt (
-      .clk_i     (clk_i),
-      .rst_n_i   (rst_n_i),
+  ) u_pt_block_counter (
+      .clk       (clk_i),
+      .rst_n     (rst_n_i),
       .en_i      (en_pt_cnt_s),
       .load_i    (load_pt_cnt_s),
-      .blk_no_i  (pt_size_i),
-      .blk_cnt_i (0),
-      .blk_cnt_o (pt_cnt_s),
-      .last_blk_o(last_pt_blk_s)
+      .cnt_i     ('0),
+      .cnt_o     (pt_cnt_s),
+      .overflow_o(pt_cnt_of_s)
   );
 
-  round_counter u_round_counter (
-      .clk_i         (clk_i),
-      .rst_n_i       (rst_n_i),
-      .en_i          (en_rnd_cnt_s),
-      .load_i        (load_rnd_cnt_s),
-      .sel_p12_init_i(sel_p12_init_s),
-      .round_o       (round_s),
-      .n_last_rnd_o  (n_last_rnd_s)
+  counter #(
+      .WIDTH(ROUND_WIDTH)
+  ) u_round_counter (
+      .clk       (clk_i),
+      .rst_n     (rst_n_i),
+      .en_i      (en_rnd_cnt_s),
+      .load_i    (load_rnd_cnt_s),
+      .cnt_i     (init_rnd_s),
+      .cnt_o     (rnd_s),
+      .overflow_o(rnd_of_s)
   );
 
-  timer #(
+  counter #(
       .WIDTH(DelayWidth)
-  ) u_timer (
-      .clk_i    (clk_i),
-      .rst_n_i  (rst_n_i),
-      .en_i     (en_timer_s),
-      .load_i   (load_timer_s),
-      .count_i  (delay_i),
-      .timeout_o(timeout_s)
+  ) u_delay_counter (
+      .clk       (clk_i),
+      .rst_n     (rst_n_i),
+      .en_i      (en_timer_s),
+      .load_i    (load_timer_s),
+      .cnt_i     ('0),
+      .cnt_o     (timer_s),
+      .overflow_o(timer_of_s)
   );
 
   permutation u_permutation (
@@ -129,7 +132,7 @@ module ascon
       .en_state_i       (en_state_s),
       .sel_ad_i         (sel_ad_s),
       // Round counter
-      .rnd_i            (round_s),
+      .rnd_i            (rnd_s),
       // FSM
       .sel_state_init_i (sel_state_init_s),
       .sel_xor_init_i   (sel_xor_init_s),
@@ -148,7 +151,11 @@ module ascon
       .tag_o            (tag_o)
   );
 
-  ascon_fsm u_ascon_fsm (
+  ascon_fsm #(
+      .ROUND_WIDTH(ROUND_WIDTH),
+      .DataAddrWidth(DataAddrWidth),
+      .DelayWidth(DelayWidth)
+  ) u_ascon_fsm (
       // Clock
       .clk_i            (clk_i),
       // Reset
@@ -170,20 +177,23 @@ module ascon
       .ct_push_o        (ct_push_o),
       .ct_flush_o       (ct_flush_o),
       // AD block counter
-      .last_ad_blk_i    (last_ad_blk_s),
+      .ad_size_i        (ad_size_i),
+      .ad_cnt_i         (ad_cnt_s),
       .en_ad_cnt_o      (en_ad_cnt_s),
       .load_ad_cnt_o    (load_ad_cnt_s),
       // PT block counter
-      .pt_cnt_end_i     (last_pt_blk_s),
+      .pt_size_i        (pt_size_i),
+      .pt_cnt_i         (pt_cnt_s),
       .en_pt_cnt_o      (en_pt_cnt_s),
       .load_pt_cnt_o    (load_pt_cnt_s),
       // Round counter
-      .n_last_rnd_i     (n_last_rnd_s),
+      .rnd_i            (rnd_s),
       .en_rnd_cnt_o     (en_rnd_cnt_s),
       .load_rnd_cnt_o   (load_rnd_cnt_s),
-      .sel_p12_init_o   (sel_p12_init_s),
+      .init_rnd_o       (init_rnd_s),
       // Delay counter
-      .timeout_i        (timeout_s),
+      .delay_i          (delay_i),
+      .timer_i          (timer_s),
       .en_timer_o       (en_timer_s),
       .load_timer_o     (load_timer_s),
       // Permutation round
