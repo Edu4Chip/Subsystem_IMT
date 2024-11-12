@@ -197,7 +197,7 @@ module ascon
       .en_timer_o       (en_timer_s),
       .load_timer_o     (load_timer_s),
       // Permutation round
-      .load_state_o     (en_state_s),
+      .en_state_o     (en_state_s),
       .sel_state_init_o (sel_state_init_s),
       .sel_xor_init_o   (sel_xor_init_s),
       .sel_xor_ext_o    (sel_xor_ext_s),

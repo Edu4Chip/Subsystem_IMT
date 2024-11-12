@@ -52,13 +52,13 @@ module ascon_fsm #(
     output logic [ROUND_WIDTH-1:0] init_rnd_o,
 
     // Delay counter
-    input  logic [DelayWidth-1:0] delay_i,
-    input  logic [DelayWidth-1:0] timer_i,
+    input logic [DelayWidth-1:0] delay_i,
+    input logic [DelayWidth-1:0] timer_i,
     output logic en_timer_o,
     output logic load_timer_o,
 
     // Permutation round
-    output logic load_state_o,
+    output logic en_state_o,
     output logic sel_state_init_o,
     output logic sel_xor_init_o,
     output logic sel_xor_ext_o,
@@ -73,35 +73,34 @@ module ascon_fsm #(
   localparam logic [ROUND_WIDTH-1:0] BeforeLastRnd = 10;
 
   typedef enum logic [4:0] {
-    idle,
-    start,
-    wait_delay,
-    ini_sta,
-    ini_mid,
-    ini_end,
-    ini_end_no_ad,
-    wait_ad,
-    ad_sta,
-    ad_mid,
-    end_ad_blk,
-    end_ad,
-    wait_pt,
-    pt_sta,
-    pt_mid,
-    pt_end,
-    wait_last_pt,
-    fin_sta,
-    fin_mid,
-    fin_end,
-    done
-  } state_t;
+    Idle,
+    Start,
+    Delay,
+    InitStart,
+    InitMid,
+    InitEndWithAD,
+    InitEndNoAD,
+    ADPrepare,
+    ADStart,
+    ADMid,
+    ADEndBlk,
+    ADEnd,
+    PTPrepare,
+    PTStart,
+    PTMid,
+    PTEnd,
+    FinalPrepare,
+    FinalStart,
+    FinalMid,
+    FinalEnd,
+    Done
+  } state_e;
 
-  state_t state_s, n_state_s;
+  state_e state_q, state_d;
 
   logic last_ad_s;
   logic before_last_pt_s;
   logic before_last_rnd_s;
-    logic sel_p12_init_o;
 
   assign last_ad_s = (ad_cnt_i == ad_size_i);
   assign before_last_pt_s = (pt_cnt_i == pt_size_i);
@@ -116,7 +115,7 @@ module ascon_fsm #(
     pt_flush_o = 0;
     ct_push_o = 0;
     ct_flush_o = 0;
-    load_state_o = 0;
+    en_state_o = 0;
     en_ad_cnt_o = 0;
     load_ad_cnt_o = 0;
     en_pt_cnt_o = 0;
@@ -135,20 +134,20 @@ module ascon_fsm #(
     ct_valid_o = 0;
     tag_valid_o = 0;
 
-    case (state_s)
-      idle: begin
+    case (state_q)
+      Idle: begin
         ready_o = 1;
         // flush the buffers
         ad_flush_o = 1;
         pt_flush_o = 1;
         ct_flush_o = 1;
         if (start_i) begin
-          n_state_s = start;
+          state_d = Start;
         end else begin
-          n_state_s = idle;
+          state_d = Idle;
         end
       end
-      start: begin
+      Start: begin
         // initialize the PT block counter
         load_pt_cnt_o = 1;
         // initialize the AD block counter
@@ -158,111 +157,111 @@ module ascon_fsm #(
         init_rnd_o = InitRndP12;
         // reload the timer
         load_timer_o = 1;
-        n_state_s = wait_delay;
+        state_d = Delay;
       end
-      wait_delay: begin
+      Delay: begin
         en_timer_o = 1;
         if (timer_i == delay_i) begin
-          n_state_s = ini_sta;
+          state_d = InitStart;
         end else begin
-          n_state_s = wait_delay;
+          state_d = Delay;
         end
       end
-      ini_sta: begin
-        load_state_o = 1;
+      InitStart: begin
+        en_state_o = 1;
         en_rnd_cnt_o = 1;
         // remove the last PT block from the PT block count
         en_pt_cnt_o = 1;
         // initialize the permutation state
         sel_state_init_o = 1;
-        n_state_s = ini_mid;
+        state_d = InitMid;
       end
-      ini_mid: begin
-        load_state_o = 1;
+      InitMid: begin
+        en_state_o = 1;
         en_rnd_cnt_o = 1;
         if (before_last_rnd_s) begin
           if (last_ad_s) begin
-            n_state_s = ini_end_no_ad;
+            state_d = InitEndNoAD;
           end else begin
-            n_state_s = ini_end;
+            state_d = InitEndWithAD;
           end
         end else begin
-          n_state_s = ini_mid;
+          state_d = InitMid;
         end
       end
-      ini_end_no_ad: begin
-        load_state_o = 1;
+      InitEndNoAD: begin
+        en_state_o = 1;
         sel_xor_init_o = 1;
         // add the domain separation constant before processing the plaintext
         sel_xor_dom_sep_o = 1;
         if (before_last_pt_s) begin
-          n_state_s = wait_last_pt;
+          state_d = FinalPrepare;
         end else begin
-          n_state_s = wait_pt;
+          state_d = PTPrepare;
         end
       end
-      ini_end: begin
-        load_state_o = 1;
+      InitEndWithAD: begin
+        en_state_o = 1;
         sel_xor_init_o = 1;
-        n_state_s = wait_ad;
+        state_d = ADPrepare;
       end
-      wait_ad: begin
+      ADPrepare: begin
         // reinitialize the round counter
         load_rnd_cnt_o = 1;
         if (!ad_empty_i) begin
-          n_state_s = ad_sta;
+          state_d = ADStart;
         end else begin
-          n_state_s = wait_ad;
+          state_d = ADPrepare;
         end
       end
-      ad_sta: begin
-        load_state_o = 1;
+      ADStart: begin
+        en_state_o = 1;
         en_rnd_cnt_o = 1;
         // consume the input data block
         sel_ad_o = 1;
         ad_pop_o = 1;
         en_ad_cnt_o = 1;
         sel_xor_ext_o = 1;
-        n_state_s = ad_mid;
+        state_d = ADMid;
       end
-      ad_mid: begin
-        load_state_o = 1;
+      ADMid: begin
+        en_state_o = 1;
         en_rnd_cnt_o = 1;
         if (before_last_rnd_s) begin
           if (last_ad_s) begin
-            n_state_s = end_ad;
+            state_d = ADEnd;
           end else begin
-            n_state_s = end_ad_blk;
+            state_d = ADEndBlk;
           end
         end else begin
-          n_state_s = ad_mid;
+          state_d = ADMid;
         end
       end
-      end_ad_blk: begin
-        load_state_o = 1;
-        n_state_s = wait_ad;
+      ADEndBlk: begin
+        en_state_o = 1;
+        state_d = ADPrepare;
       end
-      end_ad: begin
-        load_state_o = 1;
+      ADEnd: begin
+        en_state_o = 1;
         // add the domain separation constant before processing the plaintext
         sel_xor_dom_sep_o = 1;
         if (before_last_pt_s) begin
-          n_state_s = wait_last_pt;
+          state_d = FinalPrepare;
         end else begin
-          n_state_s = wait_pt;
+          state_d = PTPrepare;
         end
       end
-      wait_pt: begin
+      PTPrepare: begin
         // reinitialize the round counter
         load_rnd_cnt_o = 1;
         if (!pt_empty_i && !ct_full_i) begin
-          n_state_s = pt_sta;
+          state_d = PTStart;
         end else begin
-          n_state_s = wait_pt;
+          state_d = PTPrepare;
         end
       end
-      pt_sta: begin
-        load_state_o = 1;
+      PTStart: begin
+        en_state_o = 1;
         en_rnd_cnt_o = 1;
         // consume the input data block and produce a ciphertext block
         pt_pop_o = 1;
@@ -270,37 +269,37 @@ module ascon_fsm #(
         en_pt_cnt_o = 1;
         sel_xor_ext_o = 1;
         ct_valid_o = 1;
-        n_state_s = pt_mid;
+        state_d = PTMid;
       end
-      pt_mid: begin
-        load_state_o = 1;
+      PTMid: begin
+        en_state_o = 1;
         en_rnd_cnt_o = 1;
         if (before_last_rnd_s) begin
-          n_state_s = pt_end;
+          state_d = PTEnd;
         end else begin
-          n_state_s = pt_mid;
+          state_d = PTMid;
         end
       end
-      pt_end: begin
-        load_state_o = 1;
+      PTEnd: begin
+        en_state_o = 1;
         if (before_last_pt_s) begin
-          n_state_s = wait_last_pt;
+          state_d = FinalPrepare;
         end else begin
-          n_state_s = wait_pt;
+          state_d = PTPrepare;
         end
       end
-      wait_last_pt: begin
+      FinalPrepare: begin
         // reinitialize the round counter
         load_rnd_cnt_o = 1;
         init_rnd_o = InitRndP12;
         if (!pt_empty_i && !ct_full_i) begin
-          n_state_s = fin_sta;
+          state_d = FinalStart;
         end else begin
-          n_state_s = wait_last_pt;
+          state_d = FinalPrepare;
         end
       end
-      fin_sta: begin
-        load_state_o = 1;
+      FinalStart: begin
+        en_state_o = 1;
         en_rnd_cnt_o = 1;
         // consume the last input data block and produce a ciphertext block
         pt_pop_o = 1;
@@ -308,37 +307,37 @@ module ascon_fsm #(
         sel_xor_ext_o = 1;
         sel_xor_fin_o = 1;
         ct_valid_o = 1;
-        n_state_s = fin_mid;
+        state_d = FinalMid;
       end
-      fin_mid: begin
-        load_state_o = 1;
+      FinalMid: begin
+        en_state_o = 1;
         en_rnd_cnt_o = 1;
         if (before_last_rnd_s) begin
-          n_state_s = fin_end;
+          state_d = FinalEnd;
         end else begin
-          n_state_s = fin_mid;
+          state_d = FinalMid;
         end
       end
-      fin_end: begin
-        load_state_o = 1;
+      FinalEnd: begin
+        en_state_o = 1;
         // produce the tag
         sel_xor_tag_o = 1;
-        n_state_s = done;
+        state_d = Done;
       end
-      done: begin
+      Done: begin
         tag_valid_o = 1;
         if (!start_i) begin
-          n_state_s = idle;
+          state_d = Idle;
         end else begin
-          n_state_s = done;
+          state_d = Done;
         end
       end
       default: begin
-        n_state_s = idle;
+        state_d = Idle;
       end
     endcase
   end
 
-  `FF(state_s, n_state_s, idle, clk_i, rst_n_i)
+  `FF(state_q, state_d, Idle, clk_i, rst_n_i)
 
 endmodule
