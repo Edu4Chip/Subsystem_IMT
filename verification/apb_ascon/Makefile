@@ -12,21 +12,19 @@ EXTRA_ARGS += --trace --trace-structs
 EXTRA_ARGS += --Wno-ASCRANGE
 
 VERILOG_SOURCES += $(SRC_DIR)/ascon_pack.sv
-VERILOG_SOURCES += $(SRC_DIR)/apb_ascon.sv
+VERILOG_SOURCES += $(SRC_DIR)/top_ascon.sv
 VERILOG_SOURCES += $(SRC_DIR)/apb_registers.sv
 VERILOG_SOURCES += $(SRC_DIR)/ascon_wrapper.sv
 VERILOG_SOURCES += $(SRC_DIR)/ascon_fsm.sv
-VERILOG_SOURCES += $(SRC_DIR)/ascon_top.sv
-VERILOG_SOURCES += $(SRC_DIR)/block_counter.sv
+VERILOG_SOURCES += $(SRC_DIR)/ascon.sv
 VERILOG_SOURCES += $(SRC_DIR)/permutation.sv
-VERILOG_SOURCES += $(SRC_DIR)/round_counter.sv
-VERILOG_SOURCES += $(SRC_DIR)/timer.sv
+VERILOG_SOURCES += $(SRC_DIR)/counter.sv
 VERILOG_SOURCES += $(SRC_DIR)/fifo.sv
 
 VERILOG_INCLUDE_DIRS += $(ROOT_DIR)/include
 
 # TOPLEVEL is the name of the toplevel module in your Verilog or VHDL file
-TOPLEVEL = apb_ascon
+TOPLEVEL = top_ascon
 
 # MODULE is the basename of the Python test file
 MODULE = test_apb_ascon
