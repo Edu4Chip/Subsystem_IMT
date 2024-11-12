@@ -12,7 +12,7 @@ EXTRA_ARGS += --trace --trace-structs
 EXTRA_ARGS += --Wno-ASCRANGE
 
 VERILOG_SOURCES += $(SRC_DIR)/ascon_pack.sv
-VERILOG_SOURCES += $(SRC_DIR)/top_ascon.sv
+VERILOG_SOURCES += $(SRC_DIR)/top_ascon.v
 VERILOG_SOURCES += $(SRC_DIR)/apb_registers.sv
 VERILOG_SOURCES += $(SRC_DIR)/ascon_wrapper.sv
 VERILOG_SOURCES += $(SRC_DIR)/ascon_fsm.sv

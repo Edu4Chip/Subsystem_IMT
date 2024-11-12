@@ -1,21 +1,21 @@
 //-----------------------------------------------------------------------------
-// File          : apb_ascon.v
-// Creation date : 13.10.2024
-// Creation time : 16:24:24
+// File          : top_ascon.v
+// Creation date : 12.11.2024
+// Creation time : 22:59:57
 // Description   : Cryptographic accelerator for the Ascon128 AEAD authenticated encryption scheme.
 // Created by    : Alexandre Menu
 // Tool : Kactus2 3.13.2 64-bit
 // Plugin : Verilog generator 2.4
-// This file was generated based on IP-XACT component emse.fr:ip:apb_ascon:0.1
-// whose XML file is /home/menu/work/subsystem_imt/ipxact/emse.fr/ip/apb_ascon/0.1/apb_ascon.0.1.xml
+// This file was generated based on IP-XACT component emse.fr:ip:apb_ascon:0.2
+// whose XML file is /home/menu/work/subsystem_imt/ipxact/emse.fr/ip/apb_ascon/0.2/apb_ascon.0.2.xml
 //-----------------------------------------------------------------------------
 
 module top_ascon #(
-    parameter int unsigned APB_AW    = 10,
-    parameter int unsigned APB_DW    = 32,
-    parameter int unsigned FifoDepth = 4,
-    parameter int unsigned DataAddrWidth = 7,
-    parameter int unsigned DelayWidth = 16
+    parameter APB_AW        = 10,
+    parameter APB_DW        = 32,
+    parameter DataAddrWidth = 7,
+    parameter DelayWidth    = 16,
+    parameter FifoDepth     = 4
 ) (
     // Interface: APB
     input  logic [APB_AW-1:0] PADDR,
@@ -52,6 +52,7 @@ module top_ascon #(
 );
 
   // WARNING: EVERYTHING ON AND ABOVE THIS LINE MAY BE OVERWRITTEN BY KACTUS2!!!
+
   import ascon_pack::*;
 
   u128_t key_s;
@@ -124,8 +125,8 @@ module top_ascon #(
       .DataAddrWidth(DataAddrWidth),
       .DelayWidth   (DelayWidth)
   ) u_ascon_wrapper (
-      .clk      (clk_in),
-      .rst_n    (reset_int),
+      .clk        (clk_in),
+      .rst_n      (reset_int),
       .key_i      (key_s),
       .nonce_i    (nonce_s),
       .ad_size_i  (ad_size_s),
