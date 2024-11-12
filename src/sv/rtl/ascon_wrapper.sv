@@ -96,10 +96,10 @@ module ascon_wrapper
   );
 
 
-  ascon_top #(
+  ascon #(
       .DataAddrWidth(DataAddrWidth),
       .DelayWidth(DelayWidth)
-  ) u_ascon_top (
+  ) u_ascon (
       .clk_i      (clk_i),
       .rst_n_i    (rst_n_i),
       // parameters

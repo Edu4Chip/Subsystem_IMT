@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 
-module ascon_top
+module ascon
   import ascon_pack::*;
 #(
     parameter int DataAddrWidth = 7,
