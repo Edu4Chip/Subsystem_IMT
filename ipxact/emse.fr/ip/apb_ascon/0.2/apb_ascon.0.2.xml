@@ -3,7 +3,7 @@
 	<ipxact:vendor>emse.fr</ipxact:vendor>
 	<ipxact:library>ip</ipxact:library>
 	<ipxact:name>apb_ascon</ipxact:name>
-	<ipxact:version>0.1</ipxact:version>
+	<ipxact:version>0.2</ipxact:version>
 	<ipxact:busInterfaces>
 		<ipxact:busInterface>
 			<ipxact:name>Clock</ipxact:name>
@@ -267,7 +267,7 @@
 			<ipxact:addressBlock misalignmentAllowed="true">
 				<ipxact:name>registers</ipxact:name>
 				<ipxact:baseAddress>'h0</ipxact:baseAddress>
-				<ipxact:range>56 + 16 * uuid_26d778f8_0200_4a44_b593_72c6f2e803c9</ipxact:range>
+				<ipxact:range>80</ipxact:range>
 				<ipxact:width>32</ipxact:width>
 				<ipxact:register>
 					<ipxact:name>CTRL</ipxact:name>
@@ -279,29 +279,9 @@
 						</ipxact:accessPolicy>
 					</ipxact:accessPolicies>
 					<ipxact:field>
-						<ipxact:name>PT_BLK_NO</ipxact:name>
-						<ipxact:bitOffset>24</ipxact:bitOffset>
-						<ipxact:bitWidth>uuid_93027e02_b30f_466d_9e23_ea1832008860</ipxact:bitWidth>
-					</ipxact:field>
-					<ipxact:field>
-						<ipxact:name>AD_BLK_NO</ipxact:name>
-						<ipxact:bitOffset>16</ipxact:bitOffset>
-						<ipxact:bitWidth>uuid_8a1857a3_f321_4d4e_bc3e_10d69141871a</ipxact:bitWidth>
-					</ipxact:field>
-					<ipxact:field>
-						<ipxact:name>DELAY</ipxact:name>
-						<ipxact:bitOffset>8</ipxact:bitOffset>
-						<ipxact:bitWidth>8</ipxact:bitWidth>
-					</ipxact:field>
-					<ipxact:field>
-						<ipxact:name>BUF_IN_VALID</ipxact:name>
-						<ipxact:bitOffset>1</ipxact:bitOffset>
-						<ipxact:bitWidth>1</ipxact:bitWidth>
-					</ipxact:field>
-					<ipxact:field>
-						<ipxact:name>CT_READ_ACK</ipxact:name>
+						<ipxact:name>AD_SIZE</ipxact:name>
 						<ipxact:bitOffset>2</ipxact:bitOffset>
-						<ipxact:bitWidth>1</ipxact:bitWidth>
+						<ipxact:bitWidth>uuid_8a1857a3_f321_4d4e_bc3e_10d69141871a</ipxact:bitWidth>
 					</ipxact:field>
 					<ipxact:field>
 						<ipxact:name>START</ipxact:name>
@@ -312,6 +292,16 @@
 								<ipxact:access>write-only</ipxact:access>
 							</ipxact:fieldAccessPolicy>
 						</ipxact:fieldAccessPolicies>
+					</ipxact:field>
+					<ipxact:field>
+						<ipxact:name>DELAY</ipxact:name>
+						<ipxact:bitOffset>16</ipxact:bitOffset>
+						<ipxact:bitWidth>uuid_26d778f8_0200_4a44_b593_72c6f2e803c9</ipxact:bitWidth>
+					</ipxact:field>
+					<ipxact:field>
+						<ipxact:name>PT_SIZE</ipxact:name>
+						<ipxact:bitOffset>9</ipxact:bitOffset>
+						<ipxact:bitWidth>uuid_8a1857a3_f321_4d4e_bc3e_10d69141871a</ipxact:bitWidth>
 					</ipxact:field>
 				</ipxact:register>
 				<ipxact:register>
@@ -324,7 +314,37 @@
 						</ipxact:accessPolicy>
 					</ipxact:accessPolicies>
 					<ipxact:field>
-						<ipxact:name>DONE</ipxact:name>
+						<ipxact:name>CT_FULL</ipxact:name>
+						<ipxact:bitOffset>7</ipxact:bitOffset>
+						<ipxact:bitWidth>1</ipxact:bitWidth>
+					</ipxact:field>
+					<ipxact:field>
+						<ipxact:name>CT_EMPTY</ipxact:name>
+						<ipxact:bitOffset>6</ipxact:bitOffset>
+						<ipxact:bitWidth>1</ipxact:bitWidth>
+					</ipxact:field>
+					<ipxact:field>
+						<ipxact:name>PT_FULL</ipxact:name>
+						<ipxact:bitOffset>5</ipxact:bitOffset>
+						<ipxact:bitWidth>1</ipxact:bitWidth>
+					</ipxact:field>
+					<ipxact:field>
+						<ipxact:name>PT_EMPTY</ipxact:name>
+						<ipxact:bitOffset>4</ipxact:bitOffset>
+						<ipxact:bitWidth>1</ipxact:bitWidth>
+					</ipxact:field>
+					<ipxact:field>
+						<ipxact:name>AD_FULL</ipxact:name>
+						<ipxact:bitOffset>3</ipxact:bitOffset>
+						<ipxact:bitWidth>1</ipxact:bitWidth>
+					</ipxact:field>
+					<ipxact:field>
+						<ipxact:name>AD_EMPTY</ipxact:name>
+						<ipxact:bitOffset>2</ipxact:bitOffset>
+						<ipxact:bitWidth>1</ipxact:bitWidth>
+					</ipxact:field>
+					<ipxact:field>
+						<ipxact:name>TAG_VALID</ipxact:name>
 						<ipxact:bitOffset>1</ipxact:bitOffset>
 						<ipxact:bitWidth>1</ipxact:bitWidth>
 					</ipxact:field>
@@ -333,23 +353,13 @@
 						<ipxact:bitOffset>0</ipxact:bitOffset>
 						<ipxact:bitWidth>1</ipxact:bitWidth>
 					</ipxact:field>
-					<ipxact:field>
-						<ipxact:name>DATA_REQ</ipxact:name>
-						<ipxact:bitOffset>3</ipxact:bitOffset>
-						<ipxact:bitWidth>1</ipxact:bitWidth>
-					</ipxact:field>
-					<ipxact:field>
-						<ipxact:name>CT_READY</ipxact:name>
-						<ipxact:bitOffset>2</ipxact:bitOffset>
-						<ipxact:bitWidth>1</ipxact:bitWidth>
-					</ipxact:field>
 				</ipxact:register>
 				<ipxact:register>
-					<ipxact:name>DATAOUT</ipxact:name>
+					<ipxact:name>CT</ipxact:name>
 					<ipxact:array>
-						<ipxact:dim>uuid_26d778f8_0200_4a44_b593_72c6f2e803c9 * 2</ipxact:dim>
+						<ipxact:dim>2</ipxact:dim>
 					</ipxact:array>
-					<ipxact:addressOffset>'h58</ipxact:addressOffset>
+					<ipxact:addressOffset>'h48</ipxact:addressOffset>
 					<ipxact:size>32</ipxact:size>
 					<ipxact:accessPolicies>
 						<ipxact:accessPolicy>
@@ -357,25 +367,43 @@
 						</ipxact:accessPolicy>
 					</ipxact:accessPolicies>
 					<ipxact:field>
-						<ipxact:name>DATAOUT</ipxact:name>
+						<ipxact:name>CT</ipxact:name>
 						<ipxact:bitOffset>0</ipxact:bitOffset>
 						<ipxact:bitWidth>32</ipxact:bitWidth>
 					</ipxact:field>
 				</ipxact:register>
 				<ipxact:register>
-					<ipxact:name>DATAIN</ipxact:name>
+					<ipxact:name>PT</ipxact:name>
 					<ipxact:array>
-						<ipxact:dim>uuid_26d778f8_0200_4a44_b593_72c6f2e803c9 * 2</ipxact:dim>
+						<ipxact:dim>2</ipxact:dim>
+					</ipxact:array>
+					<ipxact:addressOffset>'h40</ipxact:addressOffset>
+					<ipxact:size>32</ipxact:size>
+					<ipxact:accessPolicies>
+						<ipxact:accessPolicy>
+							<ipxact:access>read-write</ipxact:access>
+						</ipxact:accessPolicy>
+					</ipxact:accessPolicies>
+					<ipxact:field>
+						<ipxact:name>PT</ipxact:name>
+						<ipxact:bitOffset>0</ipxact:bitOffset>
+						<ipxact:bitWidth>32</ipxact:bitWidth>
+					</ipxact:field>
+				</ipxact:register>
+				<ipxact:register>
+					<ipxact:name>AD</ipxact:name>
+					<ipxact:array>
+						<ipxact:dim>2</ipxact:dim>
 					</ipxact:array>
 					<ipxact:addressOffset>'h38</ipxact:addressOffset>
 					<ipxact:size>32</ipxact:size>
 					<ipxact:accessPolicies>
 						<ipxact:accessPolicy>
-							<ipxact:access>write-only</ipxact:access>
+							<ipxact:access>read-write</ipxact:access>
 						</ipxact:accessPolicy>
 					</ipxact:accessPolicies>
 					<ipxact:field>
-						<ipxact:name>DATAIN</ipxact:name>
+						<ipxact:name>AD</ipxact:name>
 						<ipxact:bitOffset>0</ipxact:bitOffset>
 						<ipxact:bitWidth>32</ipxact:bitWidth>
 					</ipxact:field>
@@ -450,7 +478,7 @@
 			<ipxact:componentInstantiation>
 				<ipxact:name>verilog_implementation</ipxact:name>
 				<ipxact:language>Verilog</ipxact:language>
-				<ipxact:moduleName>apb_ascon</ipxact:moduleName>
+				<ipxact:moduleName>top_ascon</ipxact:moduleName>
 				<ipxact:moduleParameters>
 					<ipxact:moduleParameter parameterId="uuid_60a3c1dd_4be7_4b49_9fa5_f0fae09655a3" usageType="nontyped">
 						<ipxact:name>APB_AW</ipxact:name>
@@ -461,15 +489,15 @@
 						<ipxact:value>uuid_03874c70_eb7c_4294_a014_a2c43ff4b748</ipxact:value>
 					</ipxact:moduleParameter>
 					<ipxact:moduleParameter parameterId="uuid_d1e0264d_007f_4762_b0c1_ec1a3e2d8943">
-						<ipxact:name>BLK_PT_AW</ipxact:name>
+						<ipxact:name>FifoDepth</ipxact:name>
 						<ipxact:value>uuid_93027e02_b30f_466d_9e23_ea1832008860</ipxact:value>
 					</ipxact:moduleParameter>
 					<ipxact:moduleParameter parameterId="uuid_42b12372_1f43_49f8_8be0_1235ba31cfe8">
-						<ipxact:name>BLK_AD_AW</ipxact:name>
+						<ipxact:name>DataAddrWidth</ipxact:name>
 						<ipxact:value>uuid_8a1857a3_f321_4d4e_bc3e_10d69141871a</ipxact:value>
 					</ipxact:moduleParameter>
 					<ipxact:moduleParameter parameterId="uuid_6115389b_ca10_4ba2_a7fb_5bd6d692f610" usageType="nontyped">
-						<ipxact:name>BUF_DEPTH</ipxact:name>
+						<ipxact:name>DelayWidth</ipxact:name>
 						<ipxact:value>uuid_26d778f8_0200_4a44_b593_72c6f2e803c9</ipxact:value>
 					</ipxact:moduleParameter>
 				</ipxact:moduleParameters>
@@ -868,14 +896,55 @@
 	</ipxact:model>
 	<ipxact:fileSets>
 		<ipxact:fileSet>
-			<ipxact:name>external_include</ipxact:name>
+			<ipxact:name>external_rtl</ipxact:name>
+			<ipxact:group>generatedFiles</ipxact:group>
 			<ipxact:file>
-				<ipxact:name>../../../../../src/sv/include/ascon.svh</ipxact:name>
-				<ipxact:fileType>unknown</ipxact:fileType>
+				<ipxact:name>../../../../../src/sv/rtl/apb_registers.sv</ipxact:name>
+				<ipxact:fileType>systemVerilogSource</ipxact:fileType>
 				<ipxact:vendorExtensions>
-					<kactus2:hash>a5a1384d2a2cda6de37d1ed14793df05</kactus2:hash>
+					<kactus2:hash>05d7452bf0778454c6733977cd760b7b45041838</kactus2:hash>
 				</ipxact:vendorExtensions>
 			</ipxact:file>
+			<ipxact:file>
+				<ipxact:name>../../../../../src/sv/rtl/ascon.sv</ipxact:name>
+				<ipxact:fileType>systemVerilogSource</ipxact:fileType>
+			</ipxact:file>
+			<ipxact:file>
+				<ipxact:name>../../../../../src/sv/rtl/ascon_fsm.sv</ipxact:name>
+				<ipxact:fileType>systemVerilogSource</ipxact:fileType>
+			</ipxact:file>
+			<ipxact:file>
+				<ipxact:name>../../../../../src/sv/rtl/ascon_pack.sv</ipxact:name>
+				<ipxact:fileType>systemVerilogSource</ipxact:fileType>
+			</ipxact:file>
+			<ipxact:file>
+				<ipxact:name>../../../../../src/sv/rtl/ascon_wrapper.sv</ipxact:name>
+				<ipxact:fileType>systemVerilogSource</ipxact:fileType>
+			</ipxact:file>
+			<ipxact:file>
+				<ipxact:name>../../../../../src/sv/rtl/counter.sv</ipxact:name>
+				<ipxact:fileType>systemVerilogSource</ipxact:fileType>
+			</ipxact:file>
+			<ipxact:file>
+				<ipxact:name>../../../../../src/sv/rtl/fifo.sv</ipxact:name>
+				<ipxact:fileType>systemVerilogSource</ipxact:fileType>
+			</ipxact:file>
+			<ipxact:file>
+				<ipxact:name>../../../../../src/sv/rtl/permutation.sv</ipxact:name>
+				<ipxact:fileType>systemVerilogSource</ipxact:fileType>
+			</ipxact:file>
+			<ipxact:file>
+				<ipxact:name>../../../../../src/sv/rtl/top_ascon.sv</ipxact:name>
+				<ipxact:fileType>systemVerilogSource</ipxact:fileType>
+			</ipxact:file>
+			<ipxact:file>
+				<ipxact:name>../../../../../src/sv/rtl/top_ascon.v</ipxact:name>
+				<ipxact:fileType>verilogSource</ipxact:fileType>
+				<ipxact:description>Generated at 23:00:14 on 12.11.2024 by Kactus2. </ipxact:description>
+			</ipxact:file>
+		</ipxact:fileSet>
+		<ipxact:fileSet>
+			<ipxact:name>external_include</ipxact:name>
 			<ipxact:file>
 				<ipxact:name>../../../../../src/sv/include/registers.svh</ipxact:name>
 				<ipxact:fileType>unknown</ipxact:fileType>
@@ -884,189 +953,202 @@
 				</ipxact:vendorExtensions>
 			</ipxact:file>
 		</ipxact:fileSet>
-		<ipxact:fileSet>
-			<ipxact:name>external_sv</ipxact:name>
-			<ipxact:file>
-				<ipxact:name>../../../../../src/sv/readme.md</ipxact:name>
-				<ipxact:fileType>unknown</ipxact:fileType>
-				<ipxact:vendorExtensions>
-					<kactus2:hash>4a166bd56ab80931ee83871d5586939c</kactus2:hash>
-				</ipxact:vendorExtensions>
-			</ipxact:file>
-		</ipxact:fileSet>
-		<ipxact:fileSet>
-			<ipxact:name>external_rtl</ipxact:name>
-			<ipxact:file>
-				<ipxact:name>../../../../../src/sv/rtl/apb_ascon.sv</ipxact:name>
-				<ipxact:fileType>systemVerilogSource</ipxact:fileType>
-				<ipxact:vendorExtensions>
-					<kactus2:hash>a04680e562a46d72e33bd7eae68976da793be2f3</kactus2:hash>
-				</ipxact:vendorExtensions>
-			</ipxact:file>
-			<ipxact:file>
-				<ipxact:name>../../../../../src/sv/rtl/ascon_fsm.sv</ipxact:name>
-				<ipxact:fileType>systemVerilogSource</ipxact:fileType>
-				<ipxact:vendorExtensions>
-					<kactus2:hash>f32ce5fba00f556acd297f4df018af2fd2aa07a1</kactus2:hash>
-				</ipxact:vendorExtensions>
-			</ipxact:file>
-			<ipxact:file>
-				<ipxact:name>../../../../../src/sv/rtl/ascon_pack.sv</ipxact:name>
-				<ipxact:fileType>systemVerilogSource</ipxact:fileType>
-				<ipxact:vendorExtensions>
-					<kactus2:hash>ac38a3125494195ef34bffc8dc382b3edabe811e</kactus2:hash>
-				</ipxact:vendorExtensions>
-			</ipxact:file>
-			<ipxact:file>
-				<ipxact:name>../../../../../src/sv/rtl/ascon_top.sv</ipxact:name>
-				<ipxact:fileType>systemVerilogSource</ipxact:fileType>
-				<ipxact:vendorExtensions>
-					<kactus2:hash>1b9484969461352acfc3e6c7f8c9af9c6a077866</kactus2:hash>
-				</ipxact:vendorExtensions>
-			</ipxact:file>
-			<ipxact:file>
-				<ipxact:name>../../../../../src/sv/rtl/ascon_wrapper.sv</ipxact:name>
-				<ipxact:fileType>systemVerilogSource</ipxact:fileType>
-			</ipxact:file>
-			<ipxact:file>
-				<ipxact:name>../../../../../src/sv/rtl/block_counter.sv</ipxact:name>
-				<ipxact:fileType>systemVerilogSource</ipxact:fileType>
-			</ipxact:file>
-			<ipxact:file>
-				<ipxact:name>../../../../../src/sv/rtl/permutation.sv</ipxact:name>
-				<ipxact:fileType>systemVerilogSource</ipxact:fileType>
-			</ipxact:file>
-			<ipxact:file>
-				<ipxact:name>../../../../../src/sv/rtl/round_counter.sv</ipxact:name>
-				<ipxact:fileType>systemVerilogSource</ipxact:fileType>
-			</ipxact:file>
-			<ipxact:file>
-				<ipxact:name>../../../../../src/sv/rtl/timer.sv</ipxact:name>
-				<ipxact:fileType>systemVerilogSource</ipxact:fileType>
-			</ipxact:file>
-		</ipxact:fileSet>
-		<ipxact:fileSet>
-			<ipxact:name>Documentation</ipxact:name>
-			<ipxact:group>documentation</ipxact:group>
-			<ipxact:file>
-				<ipxact:name>../../../../../doc/ascon.md</ipxact:name>
-				<ipxact:fileType user="markdown">user</ipxact:fileType>
-				<ipxact:description>File that contains the documentation for this component and subcomponents</ipxact:description>
-				<ipxact:vendorExtensions>
-					<kactus2:hash>166473f40ea995a5b2822b22db1ce963</kactus2:hash>
-				</ipxact:vendorExtensions>
-			</ipxact:file>
-			<ipxact:file>
-				<ipxact:name>../../../../../doc/images/emse.fr.ip.apb_ascon.0.1.png</ipxact:name>
-				<ipxact:fileType user="picture">user</ipxact:fileType>
-				<ipxact:fileType user="pngImage">user</ipxact:fileType>
-				<ipxact:description>Preview picture needed by the documentation.</ipxact:description>
-				<ipxact:vendorExtensions>
-					<kactus2:hash>e411f06e30092ff2574f4556f860de4a</kactus2:hash>
-				</ipxact:vendorExtensions>
-			</ipxact:file>
-		</ipxact:fileSet>
 	</ipxact:fileSets>
 	<ipxact:description>Cryptographic accelerator for the Ascon128 AEAD authenticated encryption scheme.</ipxact:description>
 	<ipxact:parameters>
-		<ipxact:parameter kactus2:usageCount="3" parameterId="uuid_03874c70_eb7c_4294_a014_a2c43ff4b748">
+		<ipxact:parameter kactus2:usageCount="3" parameterId="uuid_03874c70_eb7c_4294_a014_a2c43ff4b748" type="int">
 			<ipxact:name>APB_DW</ipxact:name>
 			<ipxact:value>32</ipxact:value>
 		</ipxact:parameter>
-		<ipxact:parameter kactus2:usageCount="2" parameterId="uuid_4dc34856_ae64_4d6e_983d_e61b3036f232">
+		<ipxact:parameter kactus2:usageCount="2" parameterId="uuid_4dc34856_ae64_4d6e_983d_e61b3036f232" type="int">
 			<ipxact:name>APB_AW</ipxact:name>
 			<ipxact:value>10</ipxact:value>
 		</ipxact:parameter>
-		<ipxact:parameter kactus2:usageCount="2" parameterId="uuid_93027e02_b30f_466d_9e23_ea1832008860">
-			<ipxact:name>BLK_PT_AW</ipxact:name>
-			<ipxact:value>3</ipxact:value>
-		</ipxact:parameter>
-		<ipxact:parameter kactus2:usageCount="2" parameterId="uuid_8a1857a3_f321_4d4e_bc3e_10d69141871a">
-			<ipxact:name>BLK_AD_AW</ipxact:name>
-			<ipxact:value>3</ipxact:value>
-		</ipxact:parameter>
-		<ipxact:parameter kactus2:usageCount="2" parameterId="uuid_26d778f8_0200_4a44_b593_72c6f2e803c9">
-			<ipxact:name>BUF_DEPTH</ipxact:name>
+		<ipxact:parameter kactus2:usageCount="1" parameterId="uuid_93027e02_b30f_466d_9e23_ea1832008860" type="int">
+			<ipxact:name>FifoDepth</ipxact:name>
 			<ipxact:value>4</ipxact:value>
+		</ipxact:parameter>
+		<ipxact:parameter kactus2:usageCount="3" parameterId="uuid_8a1857a3_f321_4d4e_bc3e_10d69141871a" type="int">
+			<ipxact:name>DataAddrWidth</ipxact:name>
+			<ipxact:value>7</ipxact:value>
+		</ipxact:parameter>
+		<ipxact:parameter kactus2:usageCount="1" parameterId="uuid_26d778f8_0200_4a44_b593_72c6f2e803c9" type="int">
+			<ipxact:name>DelayWidth</ipxact:name>
+			<ipxact:value>16</ipxact:value>
 		</ipxact:parameter>
 	</ipxact:parameters>
 	<ipxact:vendorExtensions>
+		<kactus2:author>Alexandre Menu</kactus2:author>
+		<kactus2:fileDependencies>
+			<kactus2:fileDependency manual="false" bidirectional="false" locked="false">
+				<kactus2:fileRef1>../../../../../src/sv/rtl/ascon_fsm.sv</kactus2:fileRef1>
+				<kactus2:fileRef2>$External$/registers.svh</kactus2:fileRef2>
+				<ipxact:description>Include reference to registers.svh</ipxact:description>
+			</kactus2:fileDependency>
+			<kactus2:fileDependency manual="false" bidirectional="false" locked="false">
+				<kactus2:fileRef1>../../../../../src/sv/rtl/ascon_fsm.sv</kactus2:fileRef1>
+				<kactus2:fileRef2>$External$/state_t.sv</kactus2:fileRef2>
+				<ipxact:description>Submodule instantiation of module state_t</ipxact:description>
+			</kactus2:fileDependency>
+			<kactus2:fileDependency manual="false" bidirectional="false" locked="false">
+				<kactus2:fileRef1>../../../../../src/sv/rtl/ascon_wrapper.sv</kactus2:fileRef1>
+				<kactus2:fileRef2>$External$/state_t.sv</kactus2:fileRef2>
+				<ipxact:description>Submodule instantiation of module state_t</ipxact:description>
+			</kactus2:fileDependency>
+			<kactus2:fileDependency manual="false" bidirectional="false" locked="false">
+				<kactus2:fileRef1>../../../../../src/sv/rtl/apb_registers.sv</kactus2:fileRef1>
+				<kactus2:fileRef2>$External$/registers.svh</kactus2:fileRef2>
+				<ipxact:description>Include reference to registers.svh</ipxact:description>
+			</kactus2:fileDependency>
+			<kactus2:fileDependency manual="false" bidirectional="false" locked="false">
+				<kactus2:fileRef1>../../../../../src/sv/rtl/apb_registers.sv</kactus2:fileRef1>
+				<kactus2:fileRef2>$External$/u64_t.sv</kactus2:fileRef2>
+				<ipxact:description>Submodule instantiation of module u64_t</ipxact:description>
+			</kactus2:fileDependency>
+			<kactus2:fileDependency manual="false" bidirectional="false" locked="false">
+				<kactus2:fileRef1>../../../../../src/sv/rtl/apb_registers.sv</kactus2:fileRef1>
+				<kactus2:fileRef2>$External$/u128_t.sv</kactus2:fileRef2>
+				<ipxact:description>Submodule instantiation of module u128_t</ipxact:description>
+			</kactus2:fileDependency>
+			<kactus2:fileDependency manual="false" bidirectional="false" locked="false">
+				<kactus2:fileRef1>../../../../../src/sv/rtl/apb_registers.sv</kactus2:fileRef1>
+				<kactus2:fileRef2>$External$/u32_t.sv</kactus2:fileRef2>
+				<ipxact:description>Submodule instantiation of module u32_t</ipxact:description>
+			</kactus2:fileDependency>
+			<kactus2:fileDependency manual="false" bidirectional="false" locked="false">
+				<kactus2:fileRef1>../../../../../src/sv/rtl/apb_registers.sv</kactus2:fileRef1>
+				<kactus2:fileRef2>$External$/apb_reg_map_t.sv</kactus2:fileRef2>
+				<ipxact:description>Submodule instantiation of module apb_reg_map_t</ipxact:description>
+			</kactus2:fileDependency>
+			<kactus2:fileDependency manual="false" bidirectional="false" locked="false">
+				<kactus2:fileRef1>../../../../../src/sv/rtl/ascon.sv</kactus2:fileRef1>
+				<kactus2:fileRef2>../../../../../src/sv/rtl/counter.sv</kactus2:fileRef2>
+				<ipxact:description>Submodule instantiation of module counter</ipxact:description>
+			</kactus2:fileDependency>
+			<kactus2:fileDependency manual="false" bidirectional="false" locked="false">
+				<kactus2:fileRef1>../../../../../src/sv/rtl/ascon.sv</kactus2:fileRef1>
+				<kactus2:fileRef2>../../../../../src/sv/rtl/permutation.sv</kactus2:fileRef2>
+				<ipxact:description>Submodule instantiation of module permutation</ipxact:description>
+			</kactus2:fileDependency>
+			<kactus2:fileDependency manual="false" bidirectional="false" locked="false">
+				<kactus2:fileRef1>../../../../../src/sv/rtl/ascon.sv</kactus2:fileRef1>
+				<kactus2:fileRef2>../../../../../src/sv/rtl/ascon_fsm.sv</kactus2:fileRef2>
+				<ipxact:description>Submodule instantiation of module ascon_fsm</ipxact:description>
+			</kactus2:fileDependency>
+			<kactus2:fileDependency manual="false" bidirectional="false" locked="false">
+				<kactus2:fileRef1>../../../../../src/sv/rtl/ascon_fsm.sv</kactus2:fileRef1>
+				<kactus2:fileRef2>$External$/state_e.sv</kactus2:fileRef2>
+				<ipxact:description>Submodule instantiation of module state_e</ipxact:description>
+			</kactus2:fileDependency>
+			<kactus2:fileDependency manual="false" bidirectional="false" locked="false">
+				<kactus2:fileRef1>../../../../../src/sv/rtl/ascon_wrapper.sv</kactus2:fileRef1>
+				<kactus2:fileRef2>$External$/u64_t.sv</kactus2:fileRef2>
+				<ipxact:description>Submodule instantiation of module u64_t</ipxact:description>
+			</kactus2:fileDependency>
+			<kactus2:fileDependency manual="false" bidirectional="false" locked="false">
+				<kactus2:fileRef1>../../../../../src/sv/rtl/ascon_wrapper.sv</kactus2:fileRef1>
+				<kactus2:fileRef2>../../../../../src/sv/rtl/fifo.sv</kactus2:fileRef2>
+				<ipxact:description>Submodule instantiation of module fifo</ipxact:description>
+			</kactus2:fileDependency>
+			<kactus2:fileDependency manual="false" bidirectional="false" locked="false">
+				<kactus2:fileRef1>../../../../../src/sv/rtl/ascon_wrapper.sv</kactus2:fileRef1>
+				<kactus2:fileRef2>../../../../../src/sv/rtl/ascon.sv</kactus2:fileRef2>
+				<ipxact:description>Submodule instantiation of module ascon</ipxact:description>
+			</kactus2:fileDependency>
+			<kactus2:fileDependency manual="false" bidirectional="false" locked="false">
+				<kactus2:fileRef1>../../../../../src/sv/rtl/permutation.sv</kactus2:fileRef1>
+				<kactus2:fileRef2>$External$/registers.svh</kactus2:fileRef2>
+				<ipxact:description>Include reference to registers.svh</ipxact:description>
+			</kactus2:fileDependency>
+			<kactus2:fileDependency manual="false" bidirectional="false" locked="false">
+				<kactus2:fileRef1>../../../../../src/sv/rtl/permutation.sv</kactus2:fileRef1>
+				<kactus2:fileRef2>$External$/state_t.sv</kactus2:fileRef2>
+				<ipxact:description>Submodule instantiation of module state_t</ipxact:description>
+			</kactus2:fileDependency>
+			<kactus2:fileDependency manual="false" bidirectional="false" locked="false">
+				<kactus2:fileRef1>../../../../../src/sv/rtl/permutation.sv</kactus2:fileRef1>
+				<kactus2:fileRef2>$External$/u64_t.sv</kactus2:fileRef2>
+				<ipxact:description>Submodule instantiation of module u64_t</ipxact:description>
+			</kactus2:fileDependency>
+			<kactus2:fileDependency manual="false" bidirectional="false" locked="false">
+				<kactus2:fileRef1>../../../../../src/sv/rtl/permutation.sv</kactus2:fileRef1>
+				<kactus2:fileRef2>$External$/u8_t.sv</kactus2:fileRef2>
+				<ipxact:description>Submodule instantiation of module u8_t</ipxact:description>
+			</kactus2:fileDependency>
+			<kactus2:fileDependency manual="false" bidirectional="false" locked="false">
+				<kactus2:fileRef1>../../../../../src/sv/rtl/top_ascon.sv</kactus2:fileRef1>
+				<kactus2:fileRef2>$External$/u128_t.sv</kactus2:fileRef2>
+				<ipxact:description>Submodule instantiation of module u128_t</ipxact:description>
+			</kactus2:fileDependency>
+			<kactus2:fileDependency manual="false" bidirectional="false" locked="false">
+				<kactus2:fileRef1>../../../../../src/sv/rtl/top_ascon.sv</kactus2:fileRef1>
+				<kactus2:fileRef2>$External$/u64_t.sv</kactus2:fileRef2>
+				<ipxact:description>Submodule instantiation of module u64_t</ipxact:description>
+			</kactus2:fileDependency>
+			<kactus2:fileDependency manual="false" bidirectional="false" locked="false">
+				<kactus2:fileRef1>../../../../../src/sv/rtl/top_ascon.sv</kactus2:fileRef1>
+				<kactus2:fileRef2>../../../../../src/sv/rtl/apb_registers.sv</kactus2:fileRef2>
+				<ipxact:description>Submodule instantiation of module apb_registers</ipxact:description>
+			</kactus2:fileDependency>
+			<kactus2:fileDependency manual="false" bidirectional="false" locked="false">
+				<kactus2:fileRef1>../../../../../src/sv/rtl/top_ascon.sv</kactus2:fileRef1>
+				<kactus2:fileRef2>../../../../../src/sv/rtl/ascon_wrapper.sv</kactus2:fileRef2>
+				<ipxact:description>Submodule instantiation of module ascon_wrapper</ipxact:description>
+			</kactus2:fileDependency>
+			<kactus2:fileDependency manual="false" bidirectional="false" locked="false">
+				<kactus2:fileRef1>/home/menu/work/subsystem_imt/ipxact/emse.fr/ip/apb_ascon/0.1/../../../../../src/sv/rtl/ascon_fsm.sv</kactus2:fileRef1>
+				<kactus2:fileRef2>$External$/registers.svh</kactus2:fileRef2>
+				<ipxact:description>Include reference to registers.svh</ipxact:description>
+			</kactus2:fileDependency>
+			<kactus2:fileDependency manual="false" bidirectional="false" locked="false">
+				<kactus2:fileRef1>/home/menu/work/subsystem_imt/ipxact/emse.fr/ip/apb_ascon/0.1/../../../../../src/sv/rtl/ascon_fsm.sv</kactus2:fileRef1>
+				<kactus2:fileRef2>$External$/state_e.sv</kactus2:fileRef2>
+				<ipxact:description>Submodule instantiation of module state_e</ipxact:description>
+			</kactus2:fileDependency>
+			<kactus2:fileDependency manual="false" bidirectional="false" locked="false">
+				<kactus2:fileRef1>/home/menu/work/subsystem_imt/ipxact/emse.fr/ip/apb_ascon/0.1/../../../../../src/sv/rtl/ascon_wrapper.sv</kactus2:fileRef1>
+				<kactus2:fileRef2>$External$/u64_t.sv</kactus2:fileRef2>
+				<ipxact:description>Submodule instantiation of module u64_t</ipxact:description>
+			</kactus2:fileDependency>
+			<kactus2:fileDependency manual="false" bidirectional="false" locked="false">
+				<kactus2:fileRef1>/home/menu/work/subsystem_imt/ipxact/emse.fr/ip/apb_ascon/0.1/../../../../../src/sv/rtl/ascon_wrapper.sv</kactus2:fileRef1>
+				<kactus2:fileRef2>../../../../../src/sv/rtl/fifo.sv</kactus2:fileRef2>
+				<ipxact:description>Submodule instantiation of module fifo</ipxact:description>
+			</kactus2:fileDependency>
+			<kactus2:fileDependency manual="false" bidirectional="false" locked="false">
+				<kactus2:fileRef1>/home/menu/work/subsystem_imt/ipxact/emse.fr/ip/apb_ascon/0.1/../../../../../src/sv/rtl/ascon_wrapper.sv</kactus2:fileRef1>
+				<kactus2:fileRef2>../../../../../src/sv/rtl/ascon.sv</kactus2:fileRef2>
+				<ipxact:description>Submodule instantiation of module ascon</ipxact:description>
+			</kactus2:fileDependency>
+			<kactus2:fileDependency manual="false" bidirectional="false" locked="false">
+				<kactus2:fileRef1>/home/menu/work/subsystem_imt/ipxact/emse.fr/ip/apb_ascon/0.1/../../../../../src/sv/rtl/permutation.sv</kactus2:fileRef1>
+				<kactus2:fileRef2>$External$/registers.svh</kactus2:fileRef2>
+				<ipxact:description>Include reference to registers.svh</ipxact:description>
+			</kactus2:fileDependency>
+			<kactus2:fileDependency manual="false" bidirectional="false" locked="false">
+				<kactus2:fileRef1>/home/menu/work/subsystem_imt/ipxact/emse.fr/ip/apb_ascon/0.1/../../../../../src/sv/rtl/permutation.sv</kactus2:fileRef1>
+				<kactus2:fileRef2>$External$/state_t.sv</kactus2:fileRef2>
+				<ipxact:description>Submodule instantiation of module state_t</ipxact:description>
+			</kactus2:fileDependency>
+			<kactus2:fileDependency manual="false" bidirectional="false" locked="false">
+				<kactus2:fileRef1>/home/menu/work/subsystem_imt/ipxact/emse.fr/ip/apb_ascon/0.1/../../../../../src/sv/rtl/permutation.sv</kactus2:fileRef1>
+				<kactus2:fileRef2>$External$/u64_t.sv</kactus2:fileRef2>
+				<ipxact:description>Submodule instantiation of module u64_t</ipxact:description>
+			</kactus2:fileDependency>
+			<kactus2:fileDependency manual="false" bidirectional="false" locked="false">
+				<kactus2:fileRef1>/home/menu/work/subsystem_imt/ipxact/emse.fr/ip/apb_ascon/0.1/../../../../../src/sv/rtl/permutation.sv</kactus2:fileRef1>
+				<kactus2:fileRef2>$External$/u8_t.sv</kactus2:fileRef2>
+				<ipxact:description>Submodule instantiation of module u8_t</ipxact:description>
+			</kactus2:fileDependency>
+		</kactus2:fileDependencies>
+		<kactus2:sourceDirectories>
+			<kactus2:sourceDirectory>../../../../../src/sv/rtl</kactus2:sourceDirectory>
+			<kactus2:sourceDirectory>../../../../../src/sv/include</kactus2:sourceDirectory>
+		</kactus2:sourceDirectories>
 		<kactus2:kts_attributes>
 			<kactus2:kts_productHier>Flat</kactus2:kts_productHier>
 			<kactus2:kts_implementation>HW</kactus2:kts_implementation>
 			<kactus2:kts_firmness>Mutable</kactus2:kts_firmness>
 		</kactus2:kts_attributes>
-		<kactus2:author>Alexandre Menu</kactus2:author>
-		<kactus2:license></kactus2:license>
-		<kactus2:sourceDirectories>
-			<kactus2:sourceDirectory>../../../../../src/sv</kactus2:sourceDirectory>
-		</kactus2:sourceDirectories>
-		<kactus2:fileDependencies>
-			<kactus2:fileDependency manual="false" bidirectional="false" locked="false">
-				<kactus2:fileRef1>../../../../../src/sv/rtl/apb_ascon.sv</kactus2:fileRef1>
-				<kactus2:fileRef2>$External$/registers.svh</kactus2:fileRef2>
-				<ipxact:description>Include reference to registers.svh</ipxact:description>
-			</kactus2:fileDependency>
-			<kactus2:fileDependency manual="false" bidirectional="false" locked="false">
-				<kactus2:fileRef1>../../../../../src/sv/rtl/apb_ascon.sv</kactus2:fileRef1>
-				<kactus2:fileRef2>$External$/reg_t.sv</kactus2:fileRef2>
-				<ipxact:description>Submodule instantiation of module reg_t</ipxact:description>
-			</kactus2:fileDependency>
-			<kactus2:fileDependency manual="false" bidirectional="false" locked="false">
-				<kactus2:fileRef1>../../../../../src/sv/rtl/apb_ascon.sv</kactus2:fileRef1>
-				<kactus2:fileRef2>$External$/buffer_t.sv</kactus2:fileRef2>
-				<ipxact:description>Submodule instantiation of module buffer_t</ipxact:description>
-			</kactus2:fileDependency>
-			<kactus2:fileDependency manual="false" bidirectional="false" locked="false">
-				<kactus2:fileRef1>../../../../../src/sv/rtl/ascon_fsm.sv</kactus2:fileRef1>
-				<kactus2:fileRef2>$External$/registers.svh</kactus2:fileRef2>
-				<ipxact:description>Include reference to registers.svh</ipxact:description>
-			</kactus2:fileDependency>
-			<kactus2:fileDependency manual="false" bidirectional="false" locked="false">
-				<kactus2:fileRef1>../../../../../src/sv/rtl/ascon_fsm.sv</kactus2:fileRef1>
-				<kactus2:fileRef2>$External$/state_t.sv</kactus2:fileRef2>
-				<ipxact:description>Submodule instantiation of module state_t</ipxact:description>
-			</kactus2:fileDependency>
-			<kactus2:fileDependency manual="false" bidirectional="false" locked="false">
-				<kactus2:fileRef1>../../../../../src/sv/rtl/ascon_top.sv</kactus2:fileRef1>
-				<kactus2:fileRef2>$External$/type_state.sv</kactus2:fileRef2>
-				<ipxact:description>Submodule instantiation of module type_state</ipxact:description>
-			</kactus2:fileDependency>
-			<kactus2:fileDependency manual="false" bidirectional="false" locked="false">
-				<kactus2:fileRef1>../../../../../src/sv/rtl/ascon_top.sv</kactus2:fileRef1>
-				<kactus2:fileRef2>../../../../../src/sv/rtl/block_counter.sv</kactus2:fileRef2>
-				<ipxact:description>Submodule instantiation of module block_counter</ipxact:description>
-			</kactus2:fileDependency>
-			<kactus2:fileDependency manual="false" bidirectional="false" locked="false">
-				<kactus2:fileRef1>../../../../../src/sv/rtl/ascon_top.sv</kactus2:fileRef1>
-				<kactus2:fileRef2>../../../../../src/sv/rtl/round_counter.sv</kactus2:fileRef2>
-				<ipxact:description>Submodule instantiation of module round_counter</ipxact:description>
-			</kactus2:fileDependency>
-			<kactus2:fileDependency manual="false" bidirectional="false" locked="false">
-				<kactus2:fileRef1>../../../../../src/sv/rtl/ascon_top.sv</kactus2:fileRef1>
-				<kactus2:fileRef2>../../../../../src/sv/rtl/permutation.sv</kactus2:fileRef2>
-				<ipxact:description>Submodule instantiation of module permutation</ipxact:description>
-			</kactus2:fileDependency>
-			<kactus2:fileDependency manual="false" bidirectional="false" locked="false">
-				<kactus2:fileRef1>../../../../../src/sv/rtl/ascon_top.sv</kactus2:fileRef1>
-				<kactus2:fileRef2>../../../../../src/sv/rtl/ascon_fsm.sv</kactus2:fileRef2>
-				<ipxact:description>Submodule instantiation of module ascon_fsm</ipxact:description>
-			</kactus2:fileDependency>
-			<kactus2:fileDependency manual="false" bidirectional="false" locked="false">
-				<kactus2:fileRef1>../../../../../src/sv/rtl/ascon_wrapper.sv</kactus2:fileRef1>
-				<kactus2:fileRef2>$External$/state_t.sv</kactus2:fileRef2>
-				<ipxact:description>Submodule instantiation of module state_t</ipxact:description>
-			</kactus2:fileDependency>
-			<kactus2:fileDependency manual="false" bidirectional="false" locked="false">
-				<kactus2:fileRef1>../../../../../src/sv/rtl/ascon_wrapper.sv</kactus2:fileRef1>
-				<kactus2:fileRef2>../../../../../src/sv/rtl/ascon_top.sv</kactus2:fileRef2>
-				<ipxact:description>Submodule instantiation of module ascon_top</ipxact:description>
-			</kactus2:fileDependency>
-			<kactus2:fileDependency manual="false" bidirectional="false" locked="false">
-				<kactus2:fileRef1>../../../../../src/sv/rtl/ascon_top.sv</kactus2:fileRef1>
-				<kactus2:fileRef2>../../../../../src/sv/rtl/timer.sv</kactus2:fileRef2>
-				<ipxact:description>Submodule instantiation of module timer</ipxact:description>
-			</kactus2:fileDependency>
-		</kactus2:fileDependencies>
 	</ipxact:vendorExtensions>
 </ipxact:component>
