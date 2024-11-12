@@ -9,14 +9,13 @@
 // This file was generated based on IP-XACT component emse.fr:ip:apb_ascon:0.1
 // whose XML file is /home/menu/work/subsystem_imt/ipxact/emse.fr/ip/apb_ascon/0.1/apb_ascon.0.1.xml
 //-----------------------------------------------------------------------------
-`include "registers.svh"
 
 module apb_ascon #(
-    parameter APB_AW    = 10,
-    parameter APB_DW    = 32,
-    parameter BLK_AD_AW = 3,
-    parameter BLK_PT_AW = 3,
-    parameter BUF_DEPTH = 4
+    parameter int unsigned APB_AW    = 10,
+    parameter int unsigned APB_DW    = 32,
+    parameter int unsigned FifoDepth = 4,
+    parameter int unsigned DataAddrWidth = 7,
+    parameter int unsigned DelayWidth = 16
 ) (
     // Interface: APB
     input  logic [APB_AW-1:0] PADDR,
@@ -53,144 +52,101 @@ module apb_ascon #(
 );
 
   // WARNING: EVERYTHING ON AND ABOVE THIS LINE MAY BE OVERWRITTEN BY KACTUS2!!!
+  import ascon_pack::*;
 
-  parameter int REG128_REG_NO = 128 / APB_DW;
-  parameter int DATA_REG_NO = BUF_DEPTH * (64 / APB_DW);
-  parameter int APB_REG_NO = 2 + 3 * REG128_REG_NO + 2 * DATA_REG_NO;
-  parameter int REG_AW = APB_REG_NO > 1 ? $clog2(APB_REG_NO) : 1;
-
-  // address of APB registers
-  parameter logic [REG_AW-1:0] CTRL = 0;
-  parameter logic [REG_AW-1:0] STATUS = 1;
-  parameter logic [REG_AW-1:0] KEY = 2;
-  parameter logic [REG_AW-1:0] NONCE = 6;
-  parameter logic [REG_AW-1:0] TAG = 10;
-  parameter logic [REG_AW-1:0] DATAIN = 14;
-  parameter logic [REG_AW-1:0] DATAOUT = 22;
-  // offset of fields in CTRL register
-  parameter int AD_BLK_NO_BIT = 16;
-  parameter int PT_BLK_NO_BIT = 24;
-  parameter int DELAY_BIT = 8;
-
-  parameter logic [APB_REG_NO-1:0] READONLY_REG = {
-    {DATA_REG_NO{1'b1}},
-    {DATA_REG_NO{1'b0}},
-    {REG128_REG_NO{1'b1}},
-    {REG128_REG_NO{1'b0}},
-    {REG128_REG_NO{1'b0}},
-    1'b1,
-    1'b0
-  };
-
-  typedef union packed {logic [BUF_DEPTH-1:0][63:0] blocks;} buffer_t;
-  typedef union packed {logic [APB_REG_NO-1:0][APB_DW-1:0] regs;} reg_t;
-
-  reg_t reg_s, n_reg_s, ro_reg_s;
-  logic [APB_REG_NO-1:0] load_reg_s;
-  logic [REG_AW-1:0] addr_s;
-
+  u128_t key_s;
+  u128_t nonce_s;
+  logic [DataAddrWidth-1:0] ad_size_s;
+  logic [DataAddrWidth-1:0] pt_size_s;
+  logic [DelayWidth-1:0] delay_s;
   logic start_s;
-  logic data_valid_s;
-  logic ct_read_ack_s;
-  logic [BLK_AD_AW-1:0] ad_size_s;
-  logic [BLK_PT_AW-1:0] pt_size_s;
-  logic [7:0] delay_s;
-  logic [127:0] key_s;
-  logic [127:0] nonce_s;
-  buffer_t data_s;
-  buffer_t ct_s;
-  logic [127:0] tag_s;
   logic ready_s;
-  logic done_s;
-  logic ct_ready_s;
-  logic data_req_s;
+  logic tag_valid_s;
+  u128_t tag_s;
+  logic ad_push_s;
+  u64_t ad_s;
+  logic ad_full_s;
+  logic ad_empty_s;
+  logic pt_push_s;
+  u64_t pt_s;
+  logic pt_full_s;
+  logic pt_empty_s;
+  logic ct_pop_s;
+  u64_t ct_s;
+  logic ct_full_s;
+  logic ct_empty_s;
 
-  assign addr_s = PADDR[2+:REG_AW];
-
-  always_comb begin
-    ct_read_ack_s = 0;
-    data_valid_s = 0;
-    start_s = 0;
-    n_reg_s = 0;
-    load_reg_s = 0;
-    PREADY = PSEL & PENABLE;
-    PSLVERR = 0;
-    PRDATA = 0;
-
-    if (PSEL) begin
-      if (|PADDR[1:0]) begin
-        PSLVERR = 1;
-      end else begin
-        if (PWRITE & PENABLE) begin
-          if (addr_s == CTRL) begin
-            {n_reg_s.regs[addr_s][APB_DW-1:3], ct_read_ack_s, data_valid_s, start_s} = PWDATA;
-            load_reg_s[addr_s] = 1;
-          end else begin
-            if (!READONLY_REG[addr_s]) begin
-              n_reg_s.regs[addr_s] = PWDATA;
-              load_reg_s[addr_s]   = 1;
-            end else begin
-              // attempt to write a read-only register
-              PSLVERR = 1;
-            end
-          end
-        end else if (!PWRITE) begin
-          if (!READONLY_REG[addr_s]) begin
-            PRDATA = reg_s.regs[addr_s];
-          end else begin
-            PRDATA = ro_reg_s.regs[addr_s];
-          end
-        end
-      end
-    end
-  end
-
-  for (genvar i = 0; i < APB_REG_NO; ++i) begin : gen_apb_reg
-    `FFL(reg_s.regs[i], n_reg_s.regs[i], load_reg_s[i], 0, clk_in, reset_int)
-  end
-
-  assign ad_size_s = reg_s.regs[CTRL][AD_BLK_NO_BIT+:BLK_AD_AW];
-  assign pt_size_s = reg_s.regs[CTRL][PT_BLK_NO_BIT+:BLK_PT_AW];
-  assign delay_s = reg_s.regs[CTRL][DELAY_BIT+:8];
-  assign key_s = {<<APB_DW{reg_s[KEY*APB_DW+:128]}};
-  assign nonce_s = {<<APB_DW{reg_s[NONCE*APB_DW+:128]}};
-  for (genvar i = 0; i < BUF_DEPTH; i++) begin : gen_data
-    assign data_s.blocks[i] = {<<APB_DW{reg_s[DATAIN*APB_DW+i*64+:64]}};
-  end
-
-  assign ro_reg_s.regs[CTRL] = 0;
-  assign ro_reg_s.regs[STATUS][APB_DW-1:4] = 0;
-  assign ro_reg_s.regs[STATUS][3:0] = {data_req_s, ct_ready_s, done_s, ready_s};
-  assign ro_reg_s[KEY*APB_DW+:128] = 0;
-  assign ro_reg_s[NONCE*APB_DW+:128] = 0;
-  assign ro_reg_s[TAG*APB_DW+:128] = {<<APB_DW{tag_s}};
-  assign ro_reg_s[DATAIN*APB_DW+:DATA_REG_NO*APB_DW] = 0;
-  for (genvar i = 0; i < BUF_DEPTH; i++) begin : gen_ct
-    assign ro_reg_s[DATAOUT*APB_DW+i*64+:64] = {<<APB_DW{ct_s.blocks[i]}};
-  end
+  apb_registers #(
+      .APB_AW       (APB_AW),
+      .APB_DW       (APB_DW),
+      .DataAddrWidth(DataAddrWidth),
+      .DelayWidth   (DelayWidth)
+  ) u_apb_registers (
+      // Interface: APB
+      .PADDR      (PADDR),
+      .PENABLE    (PENABLE),
+      .PSEL       (PSEL),
+      .PWDATA     (PWDATA),
+      .PWRITE     (PWRITE),
+      .PRDATA     (PRDATA),
+      .PREADY     (PREADY),
+      .PSLVERR    (PSLVERR),
+      // Interface: Clock
+      .clk        (clk_in),
+      // Interface: Reset
+      .rst_n      (reset_int),
+      // Interface: Ascon wrapper
+      .key_o      (key_s),
+      .nonce_o    (nonce_s),
+      .ad_size_o  (ad_size_s),
+      .pt_size_o  (pt_size_s),
+      .delay_o    (delay_s),
+      .start_o    (start_s),
+      .ready_i    (ready_s),
+      .tag_valid_i(tag_valid_s),
+      .tag_i      (tag_s),
+      .ad_push_o  (ad_push_s),
+      .ad_o       (ad_s),
+      .ad_full_i  (ad_full_s),
+      .ad_empty_i (ad_empty_s),
+      .pt_push_o  (pt_push_s),
+      .pt_o       (pt_s),
+      .pt_full_i  (pt_full_s),
+      .pt_empty_i (pt_empty_s),
+      .ct_pop_o   (ct_pop_s),
+      .ct_i       (ct_s),
+      .ct_full_i  (ct_full_s),
+      .ct_empty_i (ct_empty_s)
+  );
 
   ascon_wrapper #(
-      .BUF_DEPTH(BUF_DEPTH),
-      .BLK_AD_AW(BLK_AD_AW),
-      .BLK_PT_AW(BLK_PT_AW)
+      .FifoDepth    (FifoDepth),
+      .DataAddrWidth(DataAddrWidth),
+      .DelayWidth   (DelayWidth)
   ) u_ascon_wrapper (
-      .clk_i        (clk_in),
-      .rst_n_i      (reset_int),
-      .data_i       (data_s.blocks),
-      .key_i        (key_s),
-      .nonce_i      (nonce_s),
-      .ad_size_i    (ad_size_s),
-      .pt_size_i    (pt_size_s),
-      .delay_i      (delay_s),
-      .start_i      (start_s),
-      .data_valid_i (data_valid_s),
-      .ct_read_ack_i(ct_read_ack_s),
-      .data_req_o   (data_req_s),
-      .ct_ready_o   (ct_ready_s),
-      .ready_o      (ready_s),
-      .done_o       (done_s),
-      .ct_o         (ct_s.blocks),
-      .tag_o        (tag_s)
+      .clk_i      (clk_in),
+      .rst_n_i    (reset_int),
+      .key_i      (key_s),
+      .nonce_i    (nonce_s),
+      .ad_size_i  (ad_size_s),
+      .pt_size_i  (pt_size_s),
+      .delay_i    (delay_s),
+      .start_i    (start_s),
+      .ready_o    (ready_s),
+      .tag_valid_o(tag_valid_s),
+      .tag_o      (tag_s),
+      .ad_push_i  (ad_push_s),
+      .ad_i       (ad_s),
+      .ad_full_o  (ad_full_s),
+      .ad_empty_o (ad_empty_s),
+      .pt_push_i  (pt_push_s),
+      .pt_i       (pt_s),
+      .pt_full_o  (pt_full_s),
+      .pt_empty_o (pt_empty_s),
+      .ct_pop_i   (ct_pop_s),
+      .ct_o       (ct_s),
+      .ct_full_o  (ct_full_s),
+      .ct_empty_o (ct_empty_s)
   );
 
 endmodule

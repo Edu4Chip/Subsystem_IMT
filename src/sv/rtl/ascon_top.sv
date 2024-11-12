@@ -3,45 +3,54 @@
 module ascon_top
   import ascon_pack::*;
 #(
-    parameter int BLK_AD_AW = 10,
-    parameter int BLK_PT_AW = 10
+    parameter int DataAddrWidth = 7,
+    parameter int DelayWidth = 16
 ) (
     input logic clk_i,
     input logic rst_n_i,
-    input logic [63:0] data_i,
+
+    // parameters
     input logic [127:0] key_i,
     input logic [127:0] nonce_i,
-    input logic [BLK_AD_AW-1:0] ad_size_i,
-    input logic [BLK_PT_AW-1:0] pt_size_i,
-    input logic [7:0] delay_i,
+    input logic [DataAddrWidth-1:0] ad_size_i,
+    input logic [DataAddrWidth-1:0] pt_size_i,
+    input logic [DelayWidth-1:0] delay_i,
+
+    // status and tag
     input logic start_i,
-    input logic data_valid_i,
-    output logic data_req_o,
     output logic ready_o,
-    output logic done_o,
-    output logic ct_valid_o,
-    output logic [63:0] ct_o,
     output logic tag_valid_o,
-    output logic [127:0] tag_o
+    output logic [127:0] tag_o,
+
+    // AD FIFO
+    output logic ad_flush_o,
+    output logic ad_pop_o,
+    input logic [63:0] ad_i,
+    input logic ad_empty_i,
+
+    // PT FIFO
+    output logic pt_flush_o,
+    output logic pt_pop_o,
+    input logic [63:0] pt_i,
+    input logic pt_empty_i,
+
+    // CT FIFO
+    output logic ct_flush_o,
+    output logic ct_push_o,
+    output logic [63:0] ct_o,
+    input logic ct_full_i
+
 );
-
-  // Input data register
-  logic load_data_s;
-  logic [63:0] data_s;
-
-  // State register
-  logic en_state_s;
-
   // AD block counter
   logic en_ad_cnt_s;
   logic load_ad_cnt_s;
-  logic [BLK_AD_AW-1:0] ad_cnt_s;
+  logic [DataAddrWidth-1:0] ad_cnt_s;
   logic last_ad_blk_s;
 
   // PT block counter
   logic en_pt_cnt_s;
   logic load_pt_cnt_s;
-  logic [BLK_PT_AW-1:0] pt_cnt_s;
+  logic [DataAddrWidth-1:0] pt_cnt_s;
   logic last_pt_blk_s;
 
   // Round counter
@@ -49,7 +58,7 @@ module ascon_top
   logic load_rnd_cnt_s;
   logic sel_p12_init_s;
   logic [3:0] round_s;
-  logic n_last_rnd_o;
+  logic n_last_rnd_s;
 
   // Timer
   logic en_timer_s;
@@ -57,6 +66,8 @@ module ascon_top
   logic timeout_s;
 
   // Permutation round
+  logic en_state_s;
+  logic sel_ad_s;
   logic sel_state_init_s;
   logic sel_xor_init_s;
   logic sel_xor_ext_s;
@@ -64,12 +75,9 @@ module ascon_top
   logic sel_xor_fin_s;
   logic sel_xor_tag_s;
   logic ct_valid_s;
-  logic tag_valid_s;
-
-  `FF(data_s, data_i, 0, clk_i, rst_n_i)
 
   block_counter #(
-      .WIDTH(BLK_AD_AW)
+      .WIDTH(DataAddrWidth)
   ) u_block_counter_ad (
       .clk_i     (clk_i),
       .rst_n_i   (rst_n_i),
@@ -82,7 +90,7 @@ module ascon_top
   );
 
   block_counter #(
-      .WIDTH(BLK_PT_AW)
+      .WIDTH(DataAddrWidth)
   ) u_block_counter_pt (
       .clk_i     (clk_i),
       .rst_n_i   (rst_n_i),
@@ -101,11 +109,11 @@ module ascon_top
       .load_i        (load_rnd_cnt_s),
       .sel_p12_init_i(sel_p12_init_s),
       .round_o       (round_s),
-      .n_last_rnd_o  (n_last_rnd_o)
+      .n_last_rnd_o  (n_last_rnd_s)
   );
 
   timer #(
-      .WIDTH(8)
+      .WIDTH(DelayWidth)
   ) u_timer (
       .clk_i    (clk_i),
       .rst_n_i  (rst_n_i),
@@ -119,6 +127,7 @@ module ascon_top
       .clk              (clk_i),
       .rst_n            (rst_n_i),
       .en_state_i       (en_state_s),
+      .sel_ad_i         (sel_ad_s),
       // Round counter
       .rnd_i            (round_s),
       // FSM
@@ -129,17 +138,15 @@ module ascon_top
       .sel_xor_fin_i    (sel_xor_fin_s),
       .sel_xor_tag_i    (sel_xor_tag_s),
       .ct_valid_i       (ct_valid_s),
-      .tag_valid_i      (tag_valid_s),
+      .tag_valid_i      (tag_valid_o),
       // Ascon
       .key_i            (key_i),
       .nonce_i          (nonce_i),
-      .data_i           (data_s),
+      .ad_i             (ad_i),
+      .pt_i             (pt_i),
       .ct_o             (ct_o),
       .tag_o            (tag_o)
   );
-
-  assign ct_valid_o  = ct_valid_s;
-  assign tag_valid_o = tag_valid_s;
 
   ascon_fsm u_ascon_fsm (
       // Clock
@@ -148,12 +155,20 @@ module ascon_top
       .rst_n_i          (rst_n_i),
       // FSM
       .start_i          (start_i),
-      .data_valid_i     (data_valid_i),
-      .data_req_o       (data_req_o),
       .ready_o          (ready_o),
-      .done_o           (done_o),
-      // State register
-      .load_state_o     (en_state_s),
+      .sel_ad_o         (sel_ad_s),
+      // AD FIFO
+      .ad_empty_i       (ad_empty_i),
+      .ad_pop_o         (ad_pop_o),
+      .ad_flush_o       (ad_flush_o),
+      // PT FIFO
+      .pt_empty_i       (pt_empty_i),
+      .pt_pop_o         (pt_pop_o),
+      .pt_flush_o       (pt_flush_o),
+      // CT FIFO
+      .ct_full_i        (ct_full_i),
+      .ct_push_o        (ct_push_o),
+      .ct_flush_o       (ct_flush_o),
       // AD block counter
       .last_ad_blk_i    (last_ad_blk_s),
       .en_ad_cnt_o      (en_ad_cnt_s),
@@ -163,7 +178,7 @@ module ascon_top
       .en_pt_cnt_o      (en_pt_cnt_s),
       .load_pt_cnt_o    (load_pt_cnt_s),
       // Round counter
-      .n_last_rnd_i     (n_last_rnd_o),
+      .n_last_rnd_i     (n_last_rnd_s),
       .en_rnd_cnt_o     (en_rnd_cnt_s),
       .load_rnd_cnt_o   (load_rnd_cnt_s),
       .sel_p12_init_o   (sel_p12_init_s),
@@ -172,6 +187,7 @@ module ascon_top
       .en_timer_o       (en_timer_s),
       .load_timer_o     (load_timer_s),
       // Permutation round
+      .load_state_o     (en_state_s),
       .sel_state_init_o (sel_state_init_s),
       .sel_xor_init_o   (sel_xor_init_s),
       .sel_xor_ext_o    (sel_xor_ext_s),
@@ -179,7 +195,7 @@ module ascon_top
       .sel_xor_fin_o    (sel_xor_fin_s),
       .sel_xor_tag_o    (sel_xor_tag_s),
       .ct_valid_o       (ct_valid_s),
-      .tag_valid_o      (tag_valid_s)
+      .tag_valid_o      (tag_valid_o)
   );
 
 endmodule

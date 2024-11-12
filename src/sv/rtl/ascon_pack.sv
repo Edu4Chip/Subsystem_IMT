@@ -5,15 +5,10 @@ package ascon_pack;
   typedef logic [31:0] u32_t;
   typedef logic [7:0] u8_t;
   typedef logic [3:0] rnd_t;
-  typedef u64_t ascon_state_t [5];
 
-  // Permutation
-  parameter u64_t Ascon128IV = 64'h80400c0600000000;
-  parameter u64_t DomSepConst = 64'd1;
-  // Round counter
-  parameter int unsigned RND_WIDTH = 4;
-
-  // Round constants for the constant addition
+  // constants
+  parameter u64_t ASCON128_IV = 64'h80400c0600000000;
+  parameter u64_t DOM_SEP_CONST = 64'd1;
   parameter u8_t RndConst[16] = {
     8'hF0,
     8'hE1,
@@ -32,8 +27,6 @@ package ascon_pack;
     8'h00,
     8'h00
   };
-
-  // ASCON Sbox (array)
   parameter logic [4:0] Sbox[32] = {
     5'h04,
     5'h0B,

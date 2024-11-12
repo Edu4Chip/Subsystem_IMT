@@ -11,13 +11,23 @@ module ascon_fsm (
 
     // FSM
     input  logic start_i,
-    input  logic data_valid_i,
-    output logic data_req_o,
     output logic ready_o,
-    output logic done_o,
+    output logic sel_ad_o,
 
-    // State register
-    output logic load_state_o,
+    // AD FIFO
+    input  logic ad_empty_i,
+    output logic ad_pop_o,
+    output logic ad_flush_o,
+
+    // PT FIFO
+    input  logic pt_empty_i,
+    output logic pt_pop_o,
+    output logic pt_flush_o,
+
+    // CT FIFO
+    input  logic ct_full_i,
+    output logic ct_push_o,
+    output logic ct_flush_o,
 
     // AD block counter
     input  logic last_ad_blk_i,
@@ -36,11 +46,12 @@ module ascon_fsm (
     output logic sel_p12_init_o,
 
     // Delay counter
-    input logic timeout_i,
+    input  logic timeout_i,
     output logic en_timer_o,
     output logic load_timer_o,
 
     // Permutation round
+    output logic load_state_o,
     output logic sel_state_init_o,
     output logic sel_xor_init_o,
     output logic sel_xor_ext_o,
@@ -77,13 +88,15 @@ module ascon_fsm (
   state_t state_s, n_state_s;
 
   always_comb begin
-
-    data_req_o = 0;
     ready_o = 0;
-    done_o = 0;
-
+    sel_ad_o = 0;
+    ad_pop_o = 0;
+    ad_flush_o = 0;
+    pt_pop_o = 0;
+    pt_flush_o = 0;
+    ct_push_o = 0;
+    ct_flush_o = 0;
     load_state_o = 0;
-
     en_ad_cnt_o = 0;
     load_ad_cnt_o = 0;
     en_pt_cnt_o = 0;
@@ -91,10 +104,8 @@ module ascon_fsm (
     en_rnd_cnt_o = 0;
     load_rnd_cnt_o = 0;
     sel_p12_init_o = 0;
-
     en_timer_o = 0;
     load_timer_o = 0;
-
     sel_state_init_o = 0;
     sel_xor_init_o = 0;
     sel_xor_ext_o = 0;
@@ -107,6 +118,10 @@ module ascon_fsm (
     case (state_s)
       idle: begin
         ready_o = 1;
+        // flush the buffers
+        ad_flush_o = 1;
+        pt_flush_o = 1;
+        ct_flush_o = 1;
         if (start_i) begin
           n_state_s = start;
         end else begin
@@ -164,8 +179,6 @@ module ascon_fsm (
         sel_xor_init_o = 1;
         // add the domain separation constant before processing the plaintext
         sel_xor_dom_sep_o = 1;
-        // request a new data block for the next state
-        data_req_o = 1;
         if (pt_cnt_end_i) begin
           n_state_s = wait_last_pt;
         end else begin
@@ -175,25 +188,25 @@ module ascon_fsm (
       ini_end: begin
         load_state_o = 1;
         sel_xor_init_o = 1;
-        // request a new data block for the next state
-        data_req_o = 1;
         n_state_s = wait_ad;
       end
       wait_ad: begin
         // reinitialize the round counter
         en_rnd_cnt_o   = 1;
         load_rnd_cnt_o = 1;
-        if (data_valid_i) begin
+        if (!ad_empty_i) begin
           n_state_s = ad_sta;
         end else begin
           n_state_s = wait_ad;
         end
       end
       ad_sta: begin
-        load_state_o  = 1;
-        en_rnd_cnt_o  = 1;
+        load_state_o = 1;
+        en_rnd_cnt_o = 1;
         // consume the input data block
-        en_ad_cnt_o   = 1;
+        sel_ad_o = 1;
+        ad_pop_o = 1;
+        en_ad_cnt_o = 1;
         sel_xor_ext_o = 1;
         n_state_s = ad_mid;
       end
@@ -212,16 +225,12 @@ module ascon_fsm (
       end
       end_ad_blk: begin
         load_state_o = 1;
-        // request a new data block for the next state
-        data_req_o   = 1;
         n_state_s = wait_ad;
       end
       end_ad: begin
         load_state_o = 1;
         // add the domain separation constant before processing the plaintext
         sel_xor_dom_sep_o = 1;
-        // request a new data block for the next state
-        data_req_o = 1;
         if (pt_cnt_end_i) begin
           n_state_s = wait_last_pt;
         end else begin
@@ -232,7 +241,7 @@ module ascon_fsm (
         // reinitialize the round counter
         en_rnd_cnt_o   = 1;
         load_rnd_cnt_o = 1;
-        if (data_valid_i) begin
+        if (!pt_empty_i && !ct_full_i) begin
           n_state_s = pt_sta;
         end else begin
           n_state_s = wait_pt;
@@ -242,6 +251,8 @@ module ascon_fsm (
         load_state_o = 1;
         en_rnd_cnt_o = 1;
         // consume the input data block and produce a ciphertext block
+        pt_pop_o = 1;
+        ct_push_o = 1;
         en_pt_cnt_o = 1;
         sel_xor_ext_o = 1;
         ct_valid_o = 1;
@@ -258,8 +269,6 @@ module ascon_fsm (
       end
       pt_end: begin
         load_state_o = 1;
-        // request a new data block for the next state
-        data_req_o   = 1;
         if (pt_cnt_end_i) begin
           n_state_s = wait_last_pt;
         end else begin
@@ -271,7 +280,7 @@ module ascon_fsm (
         en_rnd_cnt_o   = 1;
         load_rnd_cnt_o = 1;
         sel_p12_init_o = 1;
-        if (data_valid_i) begin
+        if (!pt_empty_i && !ct_full_i) begin
           n_state_s = fin_sta;
         end else begin
           n_state_s = wait_last_pt;
@@ -281,6 +290,8 @@ module ascon_fsm (
         load_state_o = 1;
         en_rnd_cnt_o = 1;
         // consume the last input data block and produce a ciphertext block
+        pt_pop_o = 1;
+        ct_push_o = 1;
         sel_xor_ext_o = 1;
         sel_xor_fin_o = 1;
         ct_valid_o = 1;
@@ -296,18 +307,15 @@ module ascon_fsm (
         end
       end
       fin_end: begin
-        load_state_o  = 1;
+        load_state_o = 1;
         // produce the tag
         sel_xor_tag_o = 1;
         n_state_s = done;
       end
       done: begin
-        // wait for a new computation
-        tag_valid_o   = 1;
-        ready_o = 1;
-        done_o  = 1;
-        if (start_i) begin
-          n_state_s = start;
+        tag_valid_o = 1;
+        if (!start_i) begin
+          n_state_s = idle;
         end else begin
           n_state_s = done;
         end
