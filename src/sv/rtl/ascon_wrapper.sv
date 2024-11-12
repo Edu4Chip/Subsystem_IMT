@@ -7,8 +7,8 @@ module ascon_wrapper
     parameter int DataAddrWidth = 7,
     parameter int DelayWidth = 16
 ) (
-    input logic clk_i,
-    input logic rst_n_i,
+    input logic clk,
+    input logic rst_n,
 
     input u128_t key_i,
     input u128_t nonce_i,
@@ -36,8 +36,6 @@ module ascon_wrapper
     output logic ct_full_o,
     output logic ct_empty_o
 );
-  localparam int unsigned DataWidth = 64;
-
   logic ad_flush_s;
   logic ad_pop_s;
   u64_t ad_s;
@@ -51,11 +49,11 @@ module ascon_wrapper
   u64_t ct_s;
 
   fifo #(
-      .DATA_WIDTH(DataWidth),
+      .DATA_WIDTH(BLOCK_WIDTH),
       .DEPTH     (FifoDepth)
   ) u_fifo_ad (
-      .clk    (clk_i),
-      .rst_n  (rst_n_i),
+      .clk    (clk),
+      .rst_n  (rst_n),
       .flush_i(ad_flush_s),
       .push_i (ad_push_i),
       .data_i (ad_i),
@@ -66,11 +64,11 @@ module ascon_wrapper
   );
 
   fifo #(
-      .DATA_WIDTH(DataWidth),
+      .DATA_WIDTH(BLOCK_WIDTH),
       .DEPTH     (FifoDepth)
   ) u_fifo_pt (
-      .clk    (clk_i),
-      .rst_n  (rst_n_i),
+      .clk    (clk),
+      .rst_n  (rst_n),
       .flush_i(pt_flush_s),
       .push_i (pt_push_i),
       .data_i (pt_i),
@@ -81,11 +79,11 @@ module ascon_wrapper
   );
 
   fifo #(
-      .DATA_WIDTH(DataWidth),
+      .DATA_WIDTH(BLOCK_WIDTH),
       .DEPTH     (FifoDepth)
   ) u_fifo_ct (
-      .clk    (clk_i),
-      .rst_n  (rst_n_i),
+      .clk    (clk),
+      .rst_n  (rst_n),
       .flush_i(ct_flush_s),
       .push_i (ct_push_s),
       .data_i (ct_s),
@@ -100,8 +98,8 @@ module ascon_wrapper
       .DataAddrWidth(DataAddrWidth),
       .DelayWidth(DelayWidth)
   ) u_ascon (
-      .clk_i      (clk_i),
-      .rst_n_i    (rst_n_i),
+      .clk      (clk),
+      .rst_n    (rst_n),
       // parameters
       .key_i      (key_i),
       .nonce_i    (nonce_i),

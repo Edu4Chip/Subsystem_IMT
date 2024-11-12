@@ -7,9 +7,12 @@ package ascon_pack;
   typedef logic [3:0] rnd_t;
 
   // constants
+  parameter int unsigned BLOCK_WIDTH = 64;
+  parameter int unsigned ROUND_SIZE = 16;
+  parameter int unsigned ROUND_WIDTH = $clog2(ROUND_SIZE);
   parameter u64_t ASCON128_IV = 64'h80400c0600000000;
   parameter u64_t DOM_SEP_CONST = 64'd1;
-  parameter u8_t RndConst[16] = {
+  parameter u8_t RndConst[ROUND_SIZE] = {
     8'hF0,
     8'hE1,
     8'hD2,

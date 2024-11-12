@@ -9,27 +9,27 @@
 module permutation
   import ascon_pack::*;
 (
-    input  logic  clk,
-    input  logic  rst_n,
-    input  logic  en_state_i,
-    input  logic  sel_ad_i,
+    input logic clk,
+    input logic rst_n,
+    input logic en_state_i,
+    input logic sel_ad_i,
     // Round counter
-    input  rnd_t  rnd_i,
+    input logic [ROUND_WIDTH-1:0] rnd_i,
     // FSM
-    input  logic  sel_state_init_i,
-    input  logic  sel_xor_init_i,
-    input  logic  sel_xor_ext_i,
-    input  logic  sel_xor_dom_sep_i,
-    input  logic  sel_xor_fin_i,
-    input  logic  sel_xor_tag_i,
-    input  logic  ct_valid_i,
-    input  logic  tag_valid_i,
+    input logic sel_state_init_i,
+    input logic sel_xor_init_i,
+    input logic sel_xor_ext_i,
+    input logic sel_xor_dom_sep_i,
+    input logic sel_xor_fin_i,
+    input logic sel_xor_tag_i,
+    input logic ct_valid_i,
+    input logic tag_valid_i,
     // Ascon
-    input  u128_t key_i,
-    input  u128_t nonce_i,
-    input  u64_t  ad_i,
-    input  u64_t  pt_i,
-    output u64_t  ct_o,
+    input u128_t key_i,
+    input u128_t nonce_i,
+    input u64_t ad_i,
+    input u64_t pt_i,
+    output u64_t ct_o,
     output u128_t tag_o
 );
   typedef u64_t state_t[5];

@@ -3,43 +3,42 @@
 module ascon
   import ascon_pack::*;
 #(
-    parameter int ROUND_WIDTH = 4,
     parameter int DataAddrWidth = 7,
     parameter int DelayWidth = 16
 ) (
-    input logic clk_i,
-    input logic rst_n_i,
+    input logic clk,
+    input logic rst_n,
 
     // parameters
-    input logic [127:0] key_i,
-    input logic [127:0] nonce_i,
+    input u128_t key_i,
+    input u128_t nonce_i,
     input logic [DataAddrWidth-1:0] ad_size_i,
     input logic [DataAddrWidth-1:0] pt_size_i,
     input logic [DelayWidth-1:0] delay_i,
 
     // status and tag
-    input logic start_i,
-    output logic ready_o,
-    output logic tag_valid_o,
-    output logic [127:0] tag_o,
+    input  logic  start_i,
+    output logic  ready_o,
+    output logic  tag_valid_o,
+    output u128_t tag_o,
 
     // AD FIFO
     output logic ad_flush_o,
     output logic ad_pop_o,
-    input logic [63:0] ad_i,
-    input logic ad_empty_i,
+    input  u64_t ad_i,
+    input  logic ad_empty_i,
 
     // PT FIFO
     output logic pt_flush_o,
     output logic pt_pop_o,
-    input logic [63:0] pt_i,
-    input logic pt_empty_i,
+    input  u64_t pt_i,
+    input  logic pt_empty_i,
 
     // CT FIFO
     output logic ct_flush_o,
     output logic ct_push_o,
-    output logic [63:0] ct_o,
-    input logic ct_full_i
+    output u64_t ct_o,
+    input  logic ct_full_i
 
 );
   // AD block counter
@@ -81,8 +80,8 @@ module ascon
   counter #(
       .WIDTH(DataAddrWidth)
   ) u_ad_block_counter (
-      .clk       (clk_i),
-      .rst_n     (rst_n_i),
+      .clk       (clk),
+      .rst_n     (rst_n),
       .en_i      (en_ad_cnt_s),
       .load_i    (load_ad_cnt_s),
       .cnt_i     ('0),
@@ -93,8 +92,8 @@ module ascon
   counter #(
       .WIDTH(DataAddrWidth)
   ) u_pt_block_counter (
-      .clk       (clk_i),
-      .rst_n     (rst_n_i),
+      .clk       (clk),
+      .rst_n     (rst_n),
       .en_i      (en_pt_cnt_s),
       .load_i    (load_pt_cnt_s),
       .cnt_i     ('0),
@@ -105,8 +104,8 @@ module ascon
   counter #(
       .WIDTH(ROUND_WIDTH)
   ) u_round_counter (
-      .clk       (clk_i),
-      .rst_n     (rst_n_i),
+      .clk       (clk),
+      .rst_n     (rst_n),
       .en_i      (en_rnd_cnt_s),
       .load_i    (load_rnd_cnt_s),
       .cnt_i     (init_rnd_s),
@@ -117,8 +116,8 @@ module ascon
   counter #(
       .WIDTH(DelayWidth)
   ) u_delay_counter (
-      .clk       (clk_i),
-      .rst_n     (rst_n_i),
+      .clk       (clk),
+      .rst_n     (rst_n),
       .en_i      (en_timer_s),
       .load_i    (load_timer_s),
       .cnt_i     ('0),
@@ -127,8 +126,8 @@ module ascon
   );
 
   permutation u_permutation (
-      .clk              (clk_i),
-      .rst_n            (rst_n_i),
+      .clk              (clk),
+      .rst_n            (rst_n),
       .en_state_i       (en_state_s),
       .sel_ad_i         (sel_ad_s),
       // Round counter
@@ -152,14 +151,13 @@ module ascon
   );
 
   ascon_fsm #(
-      .ROUND_WIDTH(ROUND_WIDTH),
       .DataAddrWidth(DataAddrWidth),
       .DelayWidth(DelayWidth)
   ) u_ascon_fsm (
       // Clock
-      .clk_i            (clk_i),
+      .clk            (clk),
       // Reset
-      .rst_n_i          (rst_n_i),
+      .rst_n          (rst_n),
       // FSM
       .start_i          (start_i),
       .ready_o          (ready_o),
@@ -197,7 +195,7 @@ module ascon
       .en_timer_o       (en_timer_s),
       .load_timer_o     (load_timer_s),
       // Permutation round
-      .en_state_o     (en_state_s),
+      .en_state_o       (en_state_s),
       .sel_state_init_o (sel_state_init_s),
       .sel_xor_init_o   (sel_xor_init_s),
       .sel_xor_ext_o    (sel_xor_ext_s),

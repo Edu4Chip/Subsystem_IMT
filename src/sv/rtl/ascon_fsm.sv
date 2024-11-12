@@ -2,16 +2,17 @@
 `include "registers.svh"
 
 
-module ascon_fsm #(
-    parameter int unsigned ROUND_WIDTH = 4,
+module ascon_fsm
+  import ascon_pack::*;
+#(
     parameter int unsigned DataAddrWidth = 7,
     parameter int unsigned DelayWidth = 16
 ) (
     // Clock
-    input logic clk_i,
+    input logic clk,
 
     // Reset
-    input logic rst_n_i,
+    input logic rst_n,
 
     // FSM
     input  logic start_i,
@@ -177,7 +178,7 @@ module ascon_fsm #(
         state_d = InitMid;
       end
       InitMid: begin
-        en_state_o = 1;
+        en_state_o   = 1;
         en_rnd_cnt_o = 1;
         if (before_last_rnd_s) begin
           if (last_ad_s) begin
@@ -225,7 +226,7 @@ module ascon_fsm #(
         state_d = ADMid;
       end
       ADMid: begin
-        en_state_o = 1;
+        en_state_o   = 1;
         en_rnd_cnt_o = 1;
         if (before_last_rnd_s) begin
           if (last_ad_s) begin
@@ -272,7 +273,7 @@ module ascon_fsm #(
         state_d = PTMid;
       end
       PTMid: begin
-        en_state_o = 1;
+        en_state_o   = 1;
         en_rnd_cnt_o = 1;
         if (before_last_rnd_s) begin
           state_d = PTEnd;
@@ -310,7 +311,7 @@ module ascon_fsm #(
         state_d = FinalMid;
       end
       FinalMid: begin
-        en_state_o = 1;
+        en_state_o   = 1;
         en_rnd_cnt_o = 1;
         if (before_last_rnd_s) begin
           state_d = FinalEnd;
@@ -338,6 +339,6 @@ module ascon_fsm #(
     endcase
   end
 
-  `FF(state_q, state_d, Idle, clk_i, rst_n_i)
+  `FF(state_q, state_d, Idle, clk, rst_n)
 
 endmodule

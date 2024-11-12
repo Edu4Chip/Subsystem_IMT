@@ -124,8 +124,8 @@ module top_ascon #(
       .DataAddrWidth(DataAddrWidth),
       .DelayWidth   (DelayWidth)
   ) u_ascon_wrapper (
-      .clk_i      (clk_in),
-      .rst_n_i    (reset_int),
+      .clk      (clk_in),
+      .rst_n    (reset_int),
       .key_i      (key_s),
       .nonce_i    (nonce_s),
       .ad_size_i  (ad_size_s),
