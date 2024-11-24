@@ -10,18 +10,22 @@ module counter #(
     output logic overflow_o
 );
   logic [WIDTH:0] cnt_q, cnt_d;
+  logic overflow_s;
 
-  assign cnt_o = cnt_q[WIDTH-1:0];
-  assign overflow_o = cnt_q[WIDTH];
+  assign overflow_s = cnt_q[WIDTH];
 
   always_comb begin
     cnt_d = cnt_q;
     if (load_i) begin
       cnt_d = {1'b0, cnt_i};
-    end else if (en_i) begin
+    end else if (en_i && !overflow_s) begin
       cnt_d = cnt_q + 1'b1;
     end
   end
 
   `FF(cnt_q, cnt_d, '0, clk, rst_n)
+
+  assign cnt_o = cnt_q[WIDTH-1:0];
+  assign overflow_o = overflow_s;
+
 endmodule

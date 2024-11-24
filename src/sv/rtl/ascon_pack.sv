@@ -8,6 +8,7 @@ package ascon_pack;
 
   // constants
   parameter int unsigned BLOCK_WIDTH = 64;
+  parameter int unsigned BLOCK_BYTE_AW = 3;
   parameter int unsigned ROUND_SIZE = 16;
   parameter int unsigned ROUND_WIDTH = $clog2(ROUND_SIZE);
   parameter u64_t ASCON128_IV = 64'h80400c0600000000;

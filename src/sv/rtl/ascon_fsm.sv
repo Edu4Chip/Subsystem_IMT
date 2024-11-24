@@ -5,8 +5,8 @@
 module ascon_fsm
   import ascon_pack::*;
 #(
-    parameter int unsigned DataAddrWidth = 7,
-    parameter int unsigned DelayWidth = 16
+    parameter int unsigned BLOCK_AW = 7,
+    parameter int unsigned DELAY_WIDTH = 16
 ) (
     // Clock
     input logic clk,
@@ -35,14 +35,14 @@ module ascon_fsm
     output logic ct_flush_o,
 
     // AD block counter
-    input logic [DataAddrWidth-1:0] ad_size_i,
-    input logic [DataAddrWidth-1:0] ad_cnt_i,
+    input logic [BLOCK_AW-1:0] ad_blk_no_i,
+    input logic [BLOCK_AW-1:0] ad_cnt_i,
     output logic en_ad_cnt_o,
     output logic load_ad_cnt_o,
 
     // PT block counter
-    input logic [DataAddrWidth-1:0] pt_size_i,
-    input logic [DataAddrWidth-1:0] pt_cnt_i,
+    input logic [BLOCK_AW:0] pt_blk_no_i,
+    input logic [BLOCK_AW:0] pt_cnt_i,
     output logic en_pt_cnt_o,
     output logic load_pt_cnt_o,
 
@@ -53,8 +53,8 @@ module ascon_fsm
     output logic [ROUND_WIDTH-1:0] init_rnd_o,
 
     // Delay counter
-    input logic [DelayWidth-1:0] delay_i,
-    input logic [DelayWidth-1:0] timer_i,
+    input logic [DELAY_WIDTH-1:0] delay_i,
+    input logic [DELAY_WIDTH-1:0] timer_i,
     output logic en_timer_o,
     output logic load_timer_o,
 
@@ -103,8 +103,8 @@ module ascon_fsm
   logic before_last_pt_s;
   logic before_last_rnd_s;
 
-  assign last_ad_s = (ad_cnt_i == ad_size_i);
-  assign before_last_pt_s = (pt_cnt_i == pt_size_i);
+  assign last_ad_s = (ad_cnt_i == ad_blk_no_i);
+  assign before_last_pt_s = (pt_cnt_i == pt_blk_no_i);
   assign before_last_rnd_s = (rnd_i == BeforeLastRnd);
 
   always_comb begin

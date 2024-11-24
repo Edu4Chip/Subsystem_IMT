@@ -122,8 +122,8 @@ module top_ascon #(
 
   ascon_wrapper #(
       .FifoDepth    (FifoDepth),
-      .DataAddrWidth(DataAddrWidth),
-      .DelayWidth   (DelayWidth)
+      .DATA_AW(DataAddrWidth),
+      .DELAY_WIDTH   (DelayWidth)
   ) u_ascon_wrapper (
       .clk        (clk_in),
       .rst_n      (reset_int),

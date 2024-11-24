@@ -4,17 +4,17 @@ module ascon_wrapper
   import ascon_pack::*;
 #(
     parameter int FifoDepth = 4,
-    parameter int DataAddrWidth = 7,
-    parameter int DelayWidth = 16
+    parameter int DATA_AW = 7,
+    parameter int DELAY_WIDTH = 16
 ) (
     input logic clk,
     input logic rst_n,
 
     input u128_t key_i,
     input u128_t nonce_i,
-    input logic [DataAddrWidth-1:0] ad_size_i,
-    input logic [DataAddrWidth-1:0] pt_size_i,
-    input logic [DelayWidth-1:0] delay_i,
+    input logic [DATA_AW-1:0] ad_size_i,
+    input logic [DATA_AW-1:0] pt_size_i,
+    input logic [DELAY_WIDTH-1:0] delay_i,
 
     input  logic  start_i,
     output logic  ready_o,
@@ -95,8 +95,8 @@ module ascon_wrapper
 
 
   ascon #(
-      .DataAddrWidth(DataAddrWidth),
-      .DelayWidth(DelayWidth)
+      .DATA_AW(DATA_AW),
+      .DELAY_WIDTH(DELAY_WIDTH)
   ) u_ascon (
       .clk      (clk),
       .rst_n    (rst_n),
