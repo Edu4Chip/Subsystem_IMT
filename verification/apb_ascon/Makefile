@@ -6,10 +6,14 @@ SRC_DIR = $(ROOT_DIR)/rtl
 # defaults
 SIM ?= verilator
 TOPLEVEL_LANG ?= verilog
-# dump waveforms
-EXTRA_ARGS += --trace --trace-structs
-# disable warnings due to the Ascon state representation
-EXTRA_ARGS += --Wno-ASCRANGE
+
+ifeq ($(SIM), verilator)
+	# dump waveforms
+	EXTRA_ARGS += --trace --trace-structs
+else ifeq ($(SIM), modelsim)
+	# start GUI
+	GUI=1
+endif
 
 VERILOG_SOURCES += $(SRC_DIR)/ascon_pack.sv
 VERILOG_SOURCES += $(SRC_DIR)/top_ascon.v
