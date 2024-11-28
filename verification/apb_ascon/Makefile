@@ -19,6 +19,7 @@ VERILOG_SOURCES += $(SRC_DIR)/ascon_fsm.sv
 VERILOG_SOURCES += $(SRC_DIR)/ascon.sv
 VERILOG_SOURCES += $(SRC_DIR)/permutation.sv
 VERILOG_SOURCES += $(SRC_DIR)/block_padding.sv
+VERILOG_SOURCES += $(SRC_DIR)/block_trunc.sv
 VERILOG_SOURCES += $(SRC_DIR)/counter.sv
 VERILOG_SOURCES += $(SRC_DIR)/fifo.sv
 

@@ -3,21 +3,23 @@
 module ascon
   import ascon_pack::*;
 #(
-    parameter int DATA_AW = 7,
-    parameter int BLOCK_AW = DATA_AW - BLOCK_BYTE_AW,
-    parameter int DELAY_WIDTH = 16
+    parameter int unsigned DATA_AW = 7,
+    parameter int unsigned DELAY_WIDTH = 16
 ) (
+    // Clk
     input logic clk,
+
+    // Reset
     input logic rst_n,
 
-    // parameters
+    // Control
     input u128_t key_i,
     input u128_t nonce_i,
     input logic [DATA_AW-1:0] ad_size_i,
     input logic [DATA_AW-1:0] pt_size_i,
     input logic [DELAY_WIDTH-1:0] delay_i,
 
-    // status and tag
+    // Status and tag
     input  logic  start_i,
     output logic  ready_o,
     output logic  tag_valid_o,
@@ -42,6 +44,8 @@ module ascon
     input  logic ct_full_i
 
 );
+  localparam int unsigned BLOCK_AW = DATA_AW - 2;
+
   // AD block counter
   logic en_ad_cnt_s;
   logic load_ad_cnt_s;
@@ -51,7 +55,7 @@ module ascon
   // PT block counter
   logic en_pt_cnt_s;
   logic load_pt_cnt_s;
-  logic [BLOCK_AW:0] pt_cnt_s;
+  logic [BLOCK_AW-1:0] pt_cnt_s;
   logic pt_cnt_of_s;
 
   // Round counter
@@ -67,11 +71,19 @@ module ascon
   logic [DELAY_WIDTH-1:0] timer_s;
   logic timer_of_s;
 
-  // Block padding
-  logic [BLOCK_AW-1:0] ad_blk_no_s;
-  logic [BLOCK_AW:0] pt_blk_no_s;
+  // AD block padding
+  logic en_ad_pad_s;
+  logic [2:0] ad_idx_s;
   u64_t ad_s;
+
+  // PT block padding
+  logic en_pt_pad_s;
+  logic [2:0] pt_idx_s;
   u64_t pt_s;
+
+  // CT block truncation
+  logic en_ct_trunc_s;
+  logic [2:0] ct_idx_s;
   u64_t ct_s;
 
   // Permutation round
@@ -98,7 +110,7 @@ module ascon
   );
 
   counter #(
-      .WIDTH(BLOCK_AW + 1)
+      .WIDTH(BLOCK_AW)
   ) u_pt_block_counter (
       .clk       (clk),
       .rst_n     (rst_n),
@@ -133,31 +145,35 @@ module ascon
       .overflow_o(timer_of_s)
   );
 
-  block_padding #(
-      .DATA_AW(DATA_AW)
-  ) u_block_padding (
-      .ad_size_i   (ad_size_i),
-      .ad_blk_cnt_i(ad_cnt_s),
-      .ad_i        (ad_i),
-      .ad_blk_no_o (ad_blk_no_s),
-      .ad_o        (ad_s),
-      .pt_size_i   (pt_size_i),
-      .pt_blk_cnt_i(pt_cnt_s),
-      .pt_i        (pt_i),
-      .pt_blk_no_o (pt_blk_no_s),
-      .pt_o        (pt_s),
-      .ct_i        (ct_s),
-      .ct_o        (ct_o)
+  block_padding u_ad_block_padding (
+      .en_i  (en_ad_pad_s),
+      .idx_i (ad_idx_s),
+      .data_i(ad_i),
+      .data_o(ad_s)
+  );
+
+  block_padding u_pt_block_padding (
+      .en_i  (en_pt_pad_s),
+      .idx_i (pt_idx_s),
+      .data_i(pt_i),
+      .data_o(pt_s)
+  );
+
+  block_trunc u_block_trunc (
+      .en_i  (en_ct_trunc_s),
+      .idx_i (ct_idx_s),
+      .data_i(ct_s),
+      .data_o(ct_o)
   );
 
   permutation u_permutation (
+      // Clk
       .clk              (clk),
+      // Reset
       .rst_n            (rst_n),
+      // Control
       .en_state_i       (en_state_s),
       .sel_ad_i         (sel_ad_s),
-      // Round counter
-      .rnd_i            (rnd_s),
-      // FSM
       .sel_state_init_i (sel_state_init_s),
       .sel_xor_init_i   (sel_xor_init_s),
       .sel_xor_ext_i    (sel_xor_ext_s),
@@ -166,6 +182,8 @@ module ascon
       .sel_xor_tag_i    (sel_xor_tag_s),
       .ct_valid_i       (ct_valid_s),
       .tag_valid_i      (tag_valid_o),
+      // Round counter
+      .rnd_i            (rnd_s),
       // Ascon
       .key_i            (key_i),
       .nonce_i          (nonce_i),
@@ -176,17 +194,20 @@ module ascon
   );
 
   ascon_fsm #(
-      .BLOCK_AW(BLOCK_AW),
+      .DATA_AW    (DATA_AW),
+      .BLOCK_AW   (BLOCK_AW),
       .DELAY_WIDTH(DELAY_WIDTH)
   ) u_ascon_fsm (
       // Clock
       .clk              (clk),
       // Reset
       .rst_n            (rst_n),
-      // FSM
+      // Control
+      .ad_size_i        (ad_size_i),
+      .pt_size_i        (pt_size_i),
+      // Status
       .start_i          (start_i),
       .ready_o          (ready_o),
-      .sel_ad_o         (sel_ad_s),
       // AD FIFO
       .ad_empty_i       (ad_empty_i),
       .ad_pop_o         (ad_pop_o),
@@ -200,12 +221,10 @@ module ascon
       .ct_push_o        (ct_push_o),
       .ct_flush_o       (ct_flush_o),
       // AD block counter
-      .ad_blk_no_i      (ad_blk_no_s),
       .ad_cnt_i         (ad_cnt_s),
       .en_ad_cnt_o      (en_ad_cnt_s),
       .load_ad_cnt_o    (load_ad_cnt_s),
       // PT block counter
-      .pt_blk_no_i      (pt_blk_no_s),
       .pt_cnt_i         (pt_cnt_s),
       .en_pt_cnt_o      (en_pt_cnt_s),
       .load_pt_cnt_o    (load_pt_cnt_s),
@@ -219,8 +238,18 @@ module ascon
       .timer_i          (timer_s),
       .en_timer_o       (en_timer_s),
       .load_timer_o     (load_timer_s),
+      // AD padding
+      .en_ad_pad_o      (en_ad_pad_s),
+      .ad_idx_o         (ad_idx_s),
+      // PT padding
+      .en_pt_pad_o      (en_pt_pad_s),
+      .pt_idx_o         (pt_idx_s),
+      // CT truncation
+      .en_ct_trunc_o    (en_ct_trunc_s),
+      .ct_idx_o         (ct_idx_s),
       // Permutation round
       .en_state_o       (en_state_s),
+      .sel_ad_o         (sel_ad_s),
       .sel_state_init_o (sel_state_init_s),
       .sel_xor_init_o   (sel_xor_init_s),
       .sel_xor_ext_o    (sel_xor_ext_s),

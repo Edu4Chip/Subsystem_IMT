@@ -70,6 +70,15 @@ class Vector:
         ]
         args = ', '.join(f'{attr}={value}' for attr, value in args)
         return f'{self.__class__.__name__}({args})'
+
+    @property
+    def ad_w_padding(self):
+        return pad(self.ad, allow_empty=True)
+
+    @property
+    def pt_w_padding(self):
+        return pad(self.pt, allow_empty=False)
+
     
 
 def pad(data: bytes, block_size=8, allow_empty=True) -> bytes:
@@ -105,8 +114,8 @@ def vector_from_dict(vec: dict) -> Vector:
         count=count,
         key=key,
         nonce=nonce,
-        ad=pad(ad, allow_empty=True),
-        pt=pad(pt, allow_empty=False),
+        ad=ad,
+        pt=pt,
         ct=ct,
         tag=tag,
         ad_size=ad_size,
@@ -163,11 +172,11 @@ def select(
         raise TypeError(f"argument 'variant' must be of type Variant.")
     subset = filter(lambda v: v.variant == variant, _vectors)
     if ad_size is not None:
-        if ad_size <= 0:
+        if ad_size < 0:
             raise ValueError(f'the ad size must be greater or equal to 0, got: {ad_size}')
         subset = (v for v in subset if v.ad_size == ad_size)
     if pt_size is not None:
-        if pt_size <= 0:
+        if pt_size < 0:
             raise ValueError(f'the pt size must be greater or equal to 0, got: {pt_size}')
         subset = (v for v in subset if v.pt_size == pt_size)
     if k is not None:

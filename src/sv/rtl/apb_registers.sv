@@ -6,8 +6,8 @@ module apb_registers
 #(
     parameter int unsigned APB_AW    = 10,
     parameter int unsigned APB_DW    = 32,
-    parameter int unsigned DataAddrWidth = 7,
-    parameter int unsigned DelayWidth = 16
+    parameter int unsigned DATA_AW = 7,
+    parameter int unsigned DELAY_WIDTH = 16
 ) (
     // Interface: APB
     input  logic [APB_AW-1:0] PADDR,
@@ -28,9 +28,9 @@ module apb_registers
     // Interface: Ascon wrapper
     output u128_t key_o,
     output u128_t nonce_o,
-    output logic [DataAddrWidth-1:0] ad_size_o,
-    output logic [DataAddrWidth-1:0] pt_size_o,
-    output logic [DelayWidth-1:0] delay_o,
+    output logic [DATA_AW-1:0] ad_size_o,
+    output logic [DATA_AW-1:0] pt_size_o,
+    output logic [DELAY_WIDTH-1:0] delay_o,
 
     output logic  start_o,
     input  logic  ready_i,
@@ -158,9 +158,9 @@ module apb_registers
   // map registers on output data
   assign reg_map_s = reg_q;
   assign start_o = reg_map_s.ctrl[StartBitOffset];
-  assign ad_size_o = reg_map_s.ctrl[ADSizeOffset+:DataAddrWidth];
-  assign pt_size_o = reg_map_s.ctrl[PTSizeOffset+:DataAddrWidth];
-  assign delay_o = reg_map_s.ctrl[DelayOffset+:DelayWidth];
+  assign ad_size_o = reg_map_s.ctrl[ADSizeOffset+:DATA_AW];
+  assign pt_size_o = reg_map_s.ctrl[PTSizeOffset+:DATA_AW];
+  assign delay_o = reg_map_s.ctrl[DelayOffset+:DELAY_WIDTH];
   assign key_o = {<<APB_DW{reg_map_s.key}};
   assign nonce_o = {<<APB_DW{reg_map_s.nonce}};
   assign ad_o = {<<APB_DW{reg_map_s.ad}};

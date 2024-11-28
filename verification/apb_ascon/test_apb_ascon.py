@@ -52,8 +52,11 @@ class CtrlCfg:
     pt_size : int = 0
 
 
-def blocks(data: bytes, bs: int = 8):
-    return (data[i:i+bs] for i in range(0, len(data), bs))
+def blocks(data: bytes, bs: int = 8, pad=False):
+    if pad:
+        return (data[i:i+bs].ljust(bs, b'\x00') for i in range(0, len(data), bs))
+    else:
+        return (data[i:i+bs] for i in range(0, len(data), bs))
 
 
 def blkstr(data: bytes, bs: int = 8):
@@ -179,7 +182,7 @@ async def wait_ready(dut):
         status = await apb_read_status(dut)
 
 
-async def test_ascon_vector(dut, vec: ascon_kat_vectors.Vector, delay: int = 0, preload: bool = False):
+async def test_ascon_vector(dut, vec: ascon_kat_vectors.Vector, delay: int = 0):
     """Simulate a transaction with the DUT given a test vector."""
     cocotb.log.info(f'running test Count = {vec.count}...')
     start_time = cocotb.utils.get_sim_time('ns')
@@ -189,8 +192,8 @@ async def test_ascon_vector(dut, vec: ascon_kat_vectors.Vector, delay: int = 0, 
 
     # initializes data queues
     bs = 8
-    ad_buffer = collections.deque(blocks(vec.ad, bs=bs))
-    pt_buffer = collections.deque(blocks(vec.pt, bs=bs))
+    ad_buffer = collections.deque(blocks(vec.ad, bs=bs, pad=True))
+    pt_buffer = collections.deque(blocks(vec.pt, bs=bs, pad=True))
     ct_buffer = collections.deque()
 
     for i, blk in enumerate(ad_buffer):
@@ -213,26 +216,10 @@ async def test_ascon_vector(dut, vec: ascon_kat_vectors.Vector, delay: int = 0, 
     cfg = CtrlCfg(
         flags=CtrlFlags.START,
         delay=delay,
-        ad_size=len(vec.ad) // 8,
-        pt_size=len(vec.pt) // 8,
+        ad_size=vec.ad_size,
+        pt_size=vec.pt_size,
     )
     await apb_write_ctrl(dut, cfg)
-    if preload:
-        cocotb.log.info('...write AD')
-        for _ in range(dut.FifoDepth.value):
-            if not ad_buffer:
-                break
-            data = ad_buffer.popleft()
-            await apb_write_blocks(dut, Reg.AD, data)
-        cocotb.log.info('...write PT')
-        for _ in range(dut.FifoDepth.value):
-            if not pt_buffer:
-                break
-            data = pt_buffer.popleft()
-            await apb_write_blocks(dut, Reg.PT, data)
-    else:
-        cocotb.log.info('...skip preload')
-
     # send and receive data blocks
     while True:
         status = await apb_read_status(dut)
@@ -292,8 +279,7 @@ async def test_ascon(dut):
     # retrieve KAT vectors from the Ascon reference implementation and test them
     sample_count = get_int_param('SAMPLE_COUNT')
     test_params = {
-        'delay': get_int_param('PROG_DELAY', 0),
-        'preload': get_int_param('PRELOAD_DATA', 0),
+        'delay': get_int_param('PROG_DELAY', 0)
     }
     if sample_count is not None:
         vec = ascon_kat_vectors.get(sample_count)

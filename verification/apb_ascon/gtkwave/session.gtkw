@@ -1,0 +1,78 @@
+[*]
+[*] GTKWave Analyzer v3.4.0 (w)1999-2022 BSI
+[*] Thu Nov 28 09:15:40 2024
+[*]
+[dumpfile] "/Users/menu/work/subsystem_imt/verification/apb_ascon/dump.vcd"
+[dumpfile_mtime] "Thu Nov 28 09:11:11 2024"
+[dumpfile_size] 346361
+[savefile] "/Users/menu/work/subsystem_imt/verification/apb_ascon/Untitled.gtkw"
+[timestart] 0
+[size] 1904 881
+[pos] 1883 -348
+*-20.723347 8200000 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+[markername] AA
+[markername] BB
+[markername] CC
+[markername] DD
+[markername] EE
+[markername] FF
+[markername] GG
+[markername] HH
+[markername] II
+[markername] JJ
+[markername] KK
+[markername] LL
+[markername] MM
+[markername] NN
+[markername] OO
+[markername] PP
+[markername] QQ
+[markername] RR
+[markername] SS
+[markername] TT
+[markername] UU
+[markername] VV
+[markername] WW
+[markername] XX
+[markername] YY
+[markername] ZZ
+[treeopen] top_ascon.
+[treeopen] top_ascon.u_ascon_wrapper.
+[treeopen] top_ascon.u_ascon_wrapper.u_ascon.
+[sst_width] 253
+[signals_width] 314
+[sst_expanded] 1
+[sst_vpaned_height] 561
+@200
+-APB
+@28
+top_ascon.clk_in
+top_ascon.PSEL
+top_ascon.PENABLE
+top_ascon.PWRITE
+@22
+top_ascon.PADDR[9:0]
+top_ascon.PWDATA[31:0]
+top_ascon.PRDATA[31:0]
+@200
+-
+-FIFOs
+@28
+top_ascon.ad_push_s
+top_ascon.u_ascon_wrapper.ad_pop_s
+top_ascon.pt_push_s
+top_ascon.u_ascon_wrapper.pt_pop_s
+top_ascon.u_ascon_wrapper.ct_push_s
+top_ascon.ct_pop_s
+@25
+top_ascon.u_ascon_wrapper.u_fifo_ct.status_cnt_q[2:0]
+@200
+-
+-Ascon
+@24
+top_ascon.start_s
+@2024
+^1 /Users/menu/work/subsystem_imt/verification/apb_ascon/gtkwave_filter_files/fsm_states.txt
+top_ascon.u_ascon_wrapper.u_ascon.u_ascon_fsm.state_q[4:0]
+[pattern_trace] 1
+[pattern_trace] 0

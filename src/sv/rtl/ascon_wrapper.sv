@@ -7,9 +7,13 @@ module ascon_wrapper
     parameter int DATA_AW = 7,
     parameter int DELAY_WIDTH = 16
 ) (
+    // Interface: Clock
     input logic clk,
+
+    // Interface: Reset
     input logic rst_n,
 
+    // Interface: Ascon
     input u128_t key_i,
     input u128_t nonce_i,
     input logic [DATA_AW-1:0] ad_size_i,
@@ -93,20 +97,21 @@ module ascon_wrapper
       .empty_o(ct_empty_o)
   );
 
-
   ascon #(
-      .DATA_AW(DATA_AW),
+      .DATA_AW    (DATA_AW),
       .DELAY_WIDTH(DELAY_WIDTH)
   ) u_ascon (
-      .clk      (clk),
-      .rst_n    (rst_n),
-      // parameters
+      // Clk
+      .clk        (clk),
+      // Reset
+      .rst_n      (rst_n),
+      // Control
       .key_i      (key_i),
       .nonce_i    (nonce_i),
       .ad_size_i  (ad_size_i),
       .pt_size_i  (pt_size_i),
       .delay_i    (delay_i),
-      // status and tag
+      // Status and tag
       .start_i    (start_i),
       .ready_o    (ready_o),
       .tag_valid_o(tag_valid_o),

@@ -11,11 +11,11 @@
 //-----------------------------------------------------------------------------
 
 module top_ascon #(
-    parameter APB_AW        = 10,
-    parameter APB_DW        = 32,
-    parameter DataAddrWidth = 7,
-    parameter DelayWidth    = 16,
-    parameter FifoDepth     = 4
+    parameter APB_AW      = 10,
+    parameter APB_DW      = 32,
+    parameter DATA_AW     = 7,
+    parameter DELAY_WIDTH = 16,
+    parameter FifoDepth   = 4
 ) (
     // Interface: APB
     input  logic [APB_AW-1:0] PADDR,
@@ -57,9 +57,9 @@ module top_ascon #(
 
   u128_t key_s;
   u128_t nonce_s;
-  logic [DataAddrWidth-1:0] ad_size_s;
-  logic [DataAddrWidth-1:0] pt_size_s;
-  logic [DelayWidth-1:0] delay_s;
+  logic [DATA_AW-1:0] ad_size_s;
+  logic [DATA_AW-1:0] pt_size_s;
+  logic [DELAY_WIDTH-1:0] delay_s;
   logic start_s;
   logic ready_s;
   logic tag_valid_s;
@@ -78,10 +78,10 @@ module top_ascon #(
   logic ct_empty_s;
 
   apb_registers #(
-      .APB_AW       (APB_AW),
-      .APB_DW       (APB_DW),
-      .DataAddrWidth(DataAddrWidth),
-      .DelayWidth   (DelayWidth)
+      .APB_AW     (APB_AW),
+      .APB_DW     (APB_DW),
+      .DATA_AW    (DATA_AW),
+      .DELAY_WIDTH(DELAY_WIDTH)
   ) u_apb_registers (
       // Interface: APB
       .PADDR      (PADDR),
@@ -121,9 +121,9 @@ module top_ascon #(
   );
 
   ascon_wrapper #(
-      .FifoDepth    (FifoDepth),
-      .DATA_AW(DataAddrWidth),
-      .DELAY_WIDTH   (DelayWidth)
+      .FifoDepth  (FifoDepth),
+      .DATA_AW    (DATA_AW),
+      .DELAY_WIDTH(DELAY_WIDTH)
   ) u_ascon_wrapper (
       .clk        (clk_in),
       .rst_n      (reset_int),

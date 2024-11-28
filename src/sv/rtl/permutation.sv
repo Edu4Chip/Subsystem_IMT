@@ -9,13 +9,15 @@
 module permutation
   import ascon_pack::*;
 (
+    // Clk
     input logic clk,
+
+    // Reset
     input logic rst_n,
+
+    // Control
     input logic en_state_i,
     input logic sel_ad_i,
-    // Round counter
-    input logic [ROUND_WIDTH-1:0] rnd_i,
-    // FSM
     input logic sel_state_init_i,
     input logic sel_xor_init_i,
     input logic sel_xor_ext_i,
@@ -24,6 +26,10 @@ module permutation
     input logic sel_xor_tag_i,
     input logic ct_valid_i,
     input logic tag_valid_i,
+
+    // Round counter
+    input logic [ROUND_WIDTH-1:0] rnd_i,
+
     // Ascon
     input u128_t key_i,
     input u128_t nonce_i,
