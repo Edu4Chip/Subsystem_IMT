@@ -1,7 +1,6 @@
 `timescale 1ns / 1ps
 `include "registers.svh"
 
-
 module ascon_fsm
   import ascon_pack::*;
 #(
@@ -97,22 +96,24 @@ module ascon_fsm
     InitMid,
     InitEnd,
     InitEndNoAD,
-    InitEndNoADLastPT,
+    InitEndNoADFinalize,
     ADWait,
     ADStart,
     ADMid,
     ADEnd,
+    ADPaddingStart,
     ADLastWait,
     ADLastStart,
     ADLastMid,
     ADLastEnd,
-    ADLastEndLastPT,
+    ADLastEndFinalize,
     PTWait,
     PTStart,
+    FinalPaddingStart,
     PTMid,
     PTEnd,
-    PTLastEnd,
-    FinalPrepare,
+    PTEndFinalize,
+    FinalWait,
     FinalStart,
     FinalMid,
     FinalEnd,
@@ -125,34 +126,35 @@ module ascon_fsm
   logic [BLOCK_AW-1:0] ad_max_cnt_s;
   logic skip_ad_s;
   logic last_ad_s;
+  logic ad_full_blk_padding_s;
   logic ad_ready_s;
-  logic last_ad_ready_s;
 
   logic [2:0] pt_idx_s;
   logic [BLOCK_AW-1:0] pt_max_cnt_s;
-  logic before_last_pt_s;
+  logic last_pt_s;
+  logic pt_full_blk_padding_s;
   logic pt_ready_s;
-  logic before_last_pt_ready_s;
 
-  logic before_last_rnd_s;
+  logic last_rnd_next_s;
 
   assign ad_idx_s = ad_size_i[2:0];
   assign ad_max_cnt_s = BLOCK_AW'(ad_size_i[DATA_AW-1:3]);
   assign skip_ad_s = ad_size_i == '0;
   assign last_ad_s = ad_cnt_i == ad_max_cnt_s;
+  assign ad_full_blk_padding_s = ad_idx_s == '0;
   assign ad_ready_s = !ad_empty_i;
-  assign last_ad_ready_s = ad_ready_s || (ad_idx_s == '0);
-  assign ad_idx_o = ad_idx_s;
 
   assign pt_idx_s = pt_size_i[2:0];
   assign pt_max_cnt_s = BLOCK_AW'(pt_size_i[DATA_AW-1:3]);
   assign pt_idx_o = pt_idx_s;
-  assign before_last_pt_s = pt_cnt_i == pt_max_cnt_s;
+  assign last_pt_s = pt_cnt_i == pt_max_cnt_s;
+  assign pt_full_blk_padding_s = pt_idx_s == '0;
   assign pt_ready_s = !pt_empty_i && !ct_full_i;
-  assign before_last_pt_ready_s = pt_ready_s || (pt_idx_s == '0);
-  assign ct_idx_o = pt_idx_s;
 
-  assign before_last_rnd_s = (rnd_i == BeforeLastRnd);
+  assign last_rnd_next_s = (rnd_i == BeforeLastRnd);
+
+  assign ad_idx_o = ad_idx_s;
+  assign ct_idx_o = pt_idx_s;
 
   always_comb begin
     ready_o = 0;
@@ -187,7 +189,7 @@ module ascon_fsm
 
     case (state_q)
       Idle: begin
-        // flush the buffers and wait for the start signal
+        // flush the buffers and wait for the start signal to go high
         ready_o = 1;
         ad_flush_o = 1;
         pt_flush_o = 1;
@@ -231,9 +233,13 @@ module ascon_fsm
         // compute the intermediate rounds of the initialization
         en_state_o   = 1;
         en_rnd_cnt_o = 1;
-        if (before_last_rnd_s) begin
-          if (skip_ad_s && before_last_pt_s) begin
-            state_d = InitEndNoADLastPT;
+        // depending on input data choose to either:
+        // 1) add the domain separation constant and jump to the finalization
+        // 2) add the domain separation constant and process the first PT block
+        // 3) do not add the domain separation constant and process the first AD block
+        if (last_rnd_next_s) begin
+          if (skip_ad_s && last_pt_s) begin
+            state_d = InitEndNoADFinalize;
           end else if (skip_ad_s) begin
             state_d = InitEndNoAD;
           end else begin
@@ -243,7 +249,7 @@ module ascon_fsm
           state_d = InitMid;
         end
       end
-      InitEndNoADLastPT: begin
+      InitEndNoADFinalize: begin
         // add the key and the domain separation constant
         // compute the last round of the initialization
         // initialize the round counter before the finalization
@@ -255,16 +261,20 @@ module ascon_fsm
         // do not wait if either:
         // 1) a 64-bit padding block is processed next or
         // 2) a PT block is already available and a CT block can be pushed in the output FIFO
-        if (before_last_pt_ready_s) begin
-          state_d = FinalStart;
+        if (pt_full_blk_padding_s) begin
+          state_d = FinalPaddingStart;
         end else begin
-          state_d = FinalPrepare;
+          if (pt_ready_s) begin
+            state_d = FinalStart;
+          end else begin
+            state_d = FinalWait;
+          end
         end
       end
       InitEndNoAD: begin
         // add the key and the domain separation constant
         // compute the last round of the initialization
-        // initialize the round counter before processing the first block of plaintext
+        // initialize the round counter before processing the first PT block
         en_state_o = 1;
         load_rnd_cnt_o = 1;
         sel_xor_init_o = 1;
@@ -279,15 +289,17 @@ module ascon_fsm
       InitEnd: begin
         // add the key
         // compute the last round of the initialization
-        // initialize the round counter before processing a block of associated data
+        // initialize the round counter before processing an AD block
         en_state_o = 1;
         load_rnd_cnt_o = 1;
         sel_xor_init_o = 1;
         // do not wait if either:
         // 1) a 64-bit padding block is processed next or
         // 2) an AD block is already available
-        if (last_ad_s) begin
-          if (last_ad_ready_s) begin
+        if (last_ad_s && ad_full_blk_padding_s) begin
+          state_d = ADPaddingStart;
+        end else if (last_ad_s) begin
+          if (ad_ready_s) begin
             state_d = ADLastStart;
           end else begin
             state_d = ADLastWait;
@@ -310,7 +322,7 @@ module ascon_fsm
       end
       ADStart: begin
         // pop an AD block
-        // compute the first round of the block permutation
+        // compute the first round of the AD block permutation
         en_state_o = 1;
         en_rnd_cnt_o = 1;
         sel_ad_o = 1;
@@ -320,25 +332,25 @@ module ascon_fsm
         state_d = ADMid;
       end
       ADMid: begin
-        // compute an intermediate round of the block permutation
+        // compute an intermediate round of the AD block permutation
         en_state_o   = 1;
         en_rnd_cnt_o = 1;
-        if (before_last_rnd_s) begin
+        if (last_rnd_next_s) begin
           state_d = ADEnd;
         end else begin
           state_d = ADMid;
         end
       end
       ADEnd: begin
-        // compute the last round of the block permutation
-        // initialize the round counter before processing the next block of associated data
+        // compute the last round of the AD block permutation
+        // initialize the round counter before processing the next AD block
         en_state_o = 1;
         load_rnd_cnt_o = 1;
-        // do not wait if either:
-        // 1) a 64-bit padding block is processed next or
-        // 2) an AD block is already available
-        if (last_ad_s) begin
-          if (last_ad_ready_s) begin
+        // see InitEnd
+        if (last_ad_s && ad_full_blk_padding_s) begin
+          state_d = ADPaddingStart;
+        end else if (last_ad_s) begin
+          if (ad_ready_s) begin
             state_d = ADLastStart;
           end else begin
             state_d = ADLastWait;
@@ -351,17 +363,28 @@ module ascon_fsm
           end
         end
       end
+      ADPaddingStart: begin
+        // use a 64-bit block padding as the last AD block
+        // compute the first round of the AD block permutation
+        en_state_o = 1;
+        en_rnd_cnt_o = 1;
+        sel_ad_o = 1;
+        en_ad_cnt_o = 1;
+        sel_xor_ext_o = 1;
+        en_ad_pad_o = 1;
+        state_d = ADLastMid;
+      end
       ADLastWait: begin
         // wait for the last AD block
-        if (last_ad_ready_s) begin
+        if (ad_ready_s) begin
           state_d = ADLastStart;
         end else begin
           state_d = ADLastWait;
         end
       end
       ADLastStart: begin
-        // pop the last AD block (if any) and set the padding
-        // compute the first round of the block permutation
+        // pop the last AD block and enable the block padding
+        // compute the first round of the AD block permutation
         en_state_o = 1;
         en_rnd_cnt_o = 1;
         sel_ad_o = 1;
@@ -372,12 +395,12 @@ module ascon_fsm
         state_d = ADLastMid;
       end
       ADLastMid: begin
-        // compute an intermediate round of the block permutation
+        // compute an intermediate round of the last AD block permutation
         en_state_o   = 1;
         en_rnd_cnt_o = 1;
-        if (before_last_rnd_s) begin
-          if (before_last_pt_s) begin
-            state_d = ADLastEndLastPT;
+        if (last_rnd_next_s) begin
+          if (last_pt_s) begin
+            state_d = ADLastEndFinalize;
           end else begin
             state_d = ADLastEnd;
           end
@@ -386,9 +409,9 @@ module ascon_fsm
         end
       end
       ADLastEnd: begin
-        // compute the last round of the block permutation
+        // compute the last round of the last AD block permutation
         // add the domain separation constant
-        // initialize the round counter before processing the next block of plaintext
+        // initialize the round counter before processing the next PT block
         en_state_o = 1;
         load_rnd_cnt_o = 1;
         sel_xor_dom_sep_o = 1;
@@ -399,21 +422,23 @@ module ascon_fsm
           state_d = PTWait;
         end
       end
-      ADLastEndLastPT: begin
-        // compute the last round of the block permutation
+      ADLastEndFinalize: begin
+        // compute the last round of the last AD block permutation
         // add the domain separation constant
         // initialize the round counter before the finalization
         en_state_o = 1;
         load_rnd_cnt_o = 1;
         init_rnd_o = InitRndP12;
         sel_xor_dom_sep_o = 1;
-        // do not wait if either:
-        // 1) a 64-bit padding block is processed next or
-        // 2) a PT block is already available and a CT block can be pushed in the output FIFO
-        if (before_last_pt_ready_s) begin
-          state_d = FinalStart;
+        // see InitEndNoADFinalize
+        if (pt_full_blk_padding_s) begin
+          state_d = FinalPaddingStart;
         end else begin
-          state_d = FinalPrepare;
+          if (pt_ready_s) begin
+            state_d = FinalStart;
+          end else begin
+            state_d = FinalWait;
+          end
         end
       end
       PTWait: begin
@@ -426,7 +451,7 @@ module ascon_fsm
       end
       PTStart: begin
         // pop a PT block
-        // compute the first round of the block permutation
+        // compute the first round of the PT block permutation
         // push a CT block
         en_state_o = 1;
         en_rnd_cnt_o = 1;
@@ -438,12 +463,12 @@ module ascon_fsm
         state_d = PTMid;
       end
       PTMid: begin
-        // compute an intermediate round of the block permutation
+        // compute an intermediate round of the PT block permutation
         en_state_o   = 1;
         en_rnd_cnt_o = 1;
-        if (before_last_rnd_s) begin
-          if (before_last_pt_s) begin
-            state_d = PTLastEnd;
+        if (last_rnd_next_s) begin
+          if (last_pt_s) begin
+            state_d = PTEndFinalize;
           end else begin
             state_d = PTEnd;
           end
@@ -452,8 +477,8 @@ module ascon_fsm
         end
       end
       PTEnd: begin
-        // compute the last round of the block permutation
-        // initialize the round counter before processing the next block of plaintext
+        // compute the last round of the PT block permutation
+        // initialize the round counter before processing the next PT block
         en_state_o = 1;
         load_rnd_cnt_o = 1;
         if (pt_ready_s) begin
@@ -462,30 +487,46 @@ module ascon_fsm
           state_d = PTWait;
         end
       end
-      PTLastEnd: begin
-        // compute the last round of the block permutation
+      PTEndFinalize: begin
+        // compute the last round of the before last PT block permutation
         // initialize the round counter before the finalization
         en_state_o = 1;
         load_rnd_cnt_o = 1;
         init_rnd_o = InitRndP12;
-        // do not wait if either:
-        // 1) a 64-bit padding block is processed next or
-        // 2) a PT block is already available and a CT block can be pushed in the output FIFO
-        if (before_last_pt_ready_s) begin
-          state_d = FinalStart;
+        // See InitEndNoADFinalize
+        if (pt_full_blk_padding_s) begin
+          state_d = FinalPaddingStart;
         end else begin
-          state_d = FinalPrepare;
+          if (pt_ready_s) begin
+            state_d = FinalStart;
+          end else begin
+            state_d = FinalWait;
+          end
         end
       end
-      FinalPrepare: begin
-        if (before_last_pt_ready_s) begin
+      FinalPaddingStart: begin
+        // use a 64-bit block padding as the last PT block
+        // compute the first round of the finalization
+        // do not produce a CT block (it will be truncated anyway)
+        en_state_o = 1;
+        en_rnd_cnt_o = 1;
+        sel_xor_ext_o = 1;
+        sel_xor_fin_o = 1;
+        en_pt_pad_o = 1;
+        state_d = FinalMid;
+      end
+      FinalWait: begin
+        // wait for the last PT block
+        if (pt_ready_s) begin
           state_d = FinalStart;
         end else begin
-          state_d = FinalPrepare;
+          state_d = FinalWait;
         end
       end
       FinalStart: begin
-        // consume the last PT block and produce a CT block
+        // pop the last PT block and enable the block padding
+        // compute the first round of the finalization
+        // push a CT block with the truncated block part set to zero.
         en_state_o = 1;
         en_rnd_cnt_o = 1;
         pt_pop_o = 1;
@@ -498,21 +539,24 @@ module ascon_fsm
         state_d = FinalMid;
       end
       FinalMid: begin
+        // compute the intermediate rounds of the finalization
         en_state_o   = 1;
         en_rnd_cnt_o = 1;
-        if (before_last_rnd_s) begin
+        if (last_rnd_next_s) begin
           state_d = FinalEnd;
         end else begin
           state_d = FinalMid;
         end
       end
       FinalEnd: begin
+        // compute the last round of the finalization and the tag
         en_state_o = 1;
-        // produce the tag
         sel_xor_tag_o = 1;
         state_d = Done;
       end
       Done: begin
+        // wait for the start signal to go low
+        // the remaining CT blocks and the tag are valid until then
         tag_valid_o = 1;
         if (!start_i) begin
           state_d = Idle;

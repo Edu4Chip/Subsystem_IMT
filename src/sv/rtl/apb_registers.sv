@@ -4,9 +4,9 @@
 module apb_registers
   import ascon_pack::*;
 #(
-    parameter int unsigned APB_AW    = 10,
-    parameter int unsigned APB_DW    = 32,
-    parameter int unsigned DATA_AW = 7,
+    parameter int unsigned APB_AW      = 10,
+    parameter int unsigned APB_DW      = 32,
+    parameter int unsigned DATA_AW     = 7,
     parameter int unsigned DELAY_WIDTH = 16
 ) (
     // Interface: APB
