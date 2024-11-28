@@ -30,6 +30,13 @@ TOPLEVEL = top_ascon
 
 # MODULE is the basename of the Python test file
 MODULE = test_apb_ascon
+# by default, test a single KAT vector
+TESTCASE ?= test_single
+SAMPLE_COUNT ?=
+AD_SIZE ?= 
+PT_SIZE ?= 
+SAMPLE_SIZE ?= 
+PROG_DELAY ?= 0
 
 # include cocotb's make rules to take care of the simulator setup
 include $(shell cocotb-config --makefiles)/Makefile.sim

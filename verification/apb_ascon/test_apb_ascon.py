@@ -1,4 +1,4 @@
-import ascon_kat_vectors
+import ascon_kat
 import cocotb
 import cocotb.triggers
 import cocotb.utils
@@ -9,13 +9,10 @@ import os
 
 from cocotb.clock import Clock
 from cocotb.triggers import Timer, ClockCycles
-from cocotb.types import LogicArray, Range
-from typing import Iterable, Optional
+from typing import Optional, Tuple
 
 
-PERIOD = (100, 'ns')
-TIMEOUT = (25, 'us')
-PROG_DELAY = 10
+ascon_kat.read_kat('LWC_AEAD_KAT_128_128.txt')
 
 
 class Reg(enum.IntEnum):
@@ -78,18 +75,17 @@ def log_tx(key: str, value: bytes):
     _log(key, value, '=> write')
 
 
-def log_params(vec: ascon_kat_vectors.Vector):
+def log_vec(vec: ascon_kat.Vector):
     """Log the encryption parameters."""
-    params = [
-        ('key', vec.key),
-        ('nonce', vec.nonce),
-        (f'ad ({vec.ad_size} B)', vec.ad),
-        (f'pt ({vec.pt_size} B)', vec.pt),
-        ('ct', vec.ct),
-        ('tag', vec.tag),
-    ]
-    for i, j in params:
-        cocotb.log.info(f'{i:<13s} = {blkstr(j)!s}')
+    cocotb.log.info(f'== COUNT {vec.count:<4d} ==')
+    cocotb.log.info(f'- key     = {blkstr(vec.key)}')
+    cocotb.log.info(f'- nonce   = {blkstr(vec.nonce)}')
+    cocotb.log.info(f'- ad      = {blkstr(vec.ad)}')
+    cocotb.log.info(f'- pt      = {blkstr(vec.pt)}')
+    cocotb.log.info(f'- ct      = {blkstr(vec.ct)}')
+    cocotb.log.info(f'- tag     = {blkstr(vec.tag)}')
+    cocotb.log.info(f'- ad size = {len(vec.ad):4d} Bytes')
+    cocotb.log.info(f'- pt size = {len(vec.pt):4d} Bytes')
 
 
 async def reset_dut(dut):
@@ -134,9 +130,7 @@ async def apb_read_blocks(dut, addr: int, data_size: int):
 async def apb_read_status(dut) -> Status:
     """Read the status register."""
     status = await apb_read_int(dut, Reg.STATUS)
-    status = Status(status)
-    cocotb.log.info(f'check dut: status = {status}...')
-    return status
+    return Status(status)
 
 
 async def apb_write_int(dut, addr : int, value : int):
@@ -145,7 +139,7 @@ async def apb_write_int(dut, addr : int, value : int):
     dut.PENABLE.value = 0
     dut.PWRITE.value = 1
     dut.PADDR.value = addr
-    dut.PWDATA.value = value # LogicArray(value, Range(dut.APB_DW.value - 1, 'downto', 0))
+    dut.PWDATA.value = value
     await ClockCycles(dut.clk_in, 1)
     dut.PENABLE.value = 1
     await ClockCycles(dut.clk_in, 1)
@@ -175,105 +169,129 @@ async def apb_write_ctrl(dut, cfg: CtrlCfg):
     await apb_write_int(dut, Reg.CTRL, value)
 
 
-async def wait_ready(dut):
-    """Wait for the ready flag in the status register."""
+async def configure_ascon(dut, key, nonce):
+    cocotb.log.info('start configuration...')
+
+    # wait for the device to be ready
+    cocotb.log.info('Wait DUT...')
+    await apb_write_int(dut, Reg.CTRL, 0)
     status = await apb_read_status(dut)
     while Status.READY not in status:
         status = await apb_read_status(dut)
-
-
-async def test_ascon_vector(dut, vec: ascon_kat_vectors.Vector, delay: int = 0):
-    """Simulate a transaction with the DUT given a test vector."""
-    cocotb.log.info(f'running test Count = {vec.count}...')
-    start_time = cocotb.utils.get_sim_time('ns')
-
-    # log the encryption parameters
-    log_params(vec)
-
-    # initializes data queues
-    bs = 8
-    ad_buffer = collections.deque(blocks(vec.ad, bs=bs, pad=True))
-    pt_buffer = collections.deque(blocks(vec.pt, bs=bs, pad=True))
-    ct_buffer = collections.deque()
-
-    for i, blk in enumerate(ad_buffer):
-        cocotb.log.info(f'- ad_buffer[{i:d}] = {blk.hex()}')
-    for i, blk in enumerate(pt_buffer):
-        cocotb.log.info(f'- pt_buffer[{i:d}] = {blk.hex()}')
-
-    # wait for the device to be ready
-    await wait_ready(dut)
-    cocotb.log.info('DUT is ready...')
-    await ClockCycles(dut.clk_in, 1)
+    cocotb.log.info('DUT is ready.')
 
     # setup the parameters of the computation
-    cocotb.log.info('configure encryption...')
-    cocotb.log.info('...write KEY registers')
-    await apb_write_blocks(dut, Reg.KEY, vec.key)
-    cocotb.log.info('...write NONCE registers')
-    await apb_write_blocks(dut, Reg.NONCE, vec.nonce)
-    cocotb.log.info('...write CTRL register and start encryption')
+    cocotb.log.info('write KEY registers...')
+    await apb_write_blocks(dut, Reg.KEY, key)
+    cocotb.log.info('write NONCE registers...')
+    await apb_write_blocks(dut, Reg.NONCE, nonce)
+
+    cocotb.log.info('configuration done.')
+
+
+async def encrypt(dut, ad: bytes, pt: bytes, delay: int = 0) -> Tuple[bytes, bytes]:
+    # initializes data queues
+    bs = 8
+    ad_buffer = collections.deque(blocks(ad, bs=bs, pad=True))
+    pt_buffer = collections.deque(blocks(pt, bs=bs, pad=True))
+    ct_buffer = collections.deque()
+
+    # abort pending encryptions and wait for the device to be ready
+    cocotb.log.info('Wait DUT...')
+    await apb_write_int(dut, Reg.CTRL, 0)
+    status = await apb_read_status(dut)
+    while Status.READY not in status:
+        status = await apb_read_status(dut)
+    cocotb.log.info('DUT is ready.')
+    
+    # start encryption
+    cocotb.log.info('write CTRL...')
     cfg = CtrlCfg(
         flags=CtrlFlags.START,
         delay=delay,
-        ad_size=vec.ad_size,
-        pt_size=vec.pt_size,
+        ad_size=len(ad),
+        pt_size=len(pt),
     )
     await apb_write_ctrl(dut, cfg)
-    # send and receive data blocks
-    while True:
-        status = await apb_read_status(dut)
+
+    # send AD blocks
+    status = await apb_read_status(dut)
+    while ad_buffer:
         if Status.TAG_VALID in status:
-            break
-        elif ad_buffer and (Status.AD_FULL not in status):
+            raise Exception('unexpected termination of encryption')
+        if Status.AD_FULL not in status:
+            cocotb.log.info('write AD FIFO...')
             data = ad_buffer.popleft()
             await apb_write_blocks(dut, Reg.AD, data)
-        elif pt_buffer and (Status.PT_FULL not in status):
-            data = pt_buffer.popleft()
-            await apb_write_blocks(dut, Reg.PT, data)
-        elif Status.CT_EMPTY not in status:
+        status = await apb_read_status(dut)
+    
+    # send PT blocks, retrieve CT blocks if any
+    while pt_buffer:
+        if Status.TAG_VALID in status:
+            raise Exception('unexpected termination of encryption')
+        if Status.CT_EMPTY not in status:
+            cocotb.log.info('read CT FIFO...')
             blk = await apb_read_blocks(dut, Reg.CT, bs)
             ct_buffer.append(blk)
-    cocotb.log.info('encryption done.')
-    # read the last blocks
+        if Status.PT_FULL not in status:
+            cocotb.log.info('write PT FIFO...')
+            data = pt_buffer.popleft()
+            await apb_write_blocks(dut, Reg.PT, data)
+        status = await apb_read_status(dut)
+
+    # retrieve the tag
+    cocotb.log.info('wait for the tag...')
+    while Status.TAG_VALID not in status:
+        if Status.CT_EMPTY not in status:
+            cocotb.log.info('read CT FIFO...')
+            blk = await apb_read_blocks(dut, Reg.CT, bs)
+            ct_buffer.append(blk)
+        status = await apb_read_status(dut)
+    
+    # retrive the remaining CT blocks
+    cocotb.log.info('read CT FIFO...')
     while Status.CT_EMPTY not in status:
         blk = await apb_read_blocks(dut, Reg.CT, bs)
         ct_buffer.append(blk)
         status = await apb_read_status(dut)
-    ct = b''.join(ct_buffer)
-    ct = ct[:vec.pt_size]
-    # read the tag
+
     cocotb.log.info('retrieve the tag...')
     tag = await apb_read_blocks(dut, Reg.TAG, 16)
-    cocotb.log.info('terminate the encryption...')
-    await apb_write_int(dut, Reg.CTRL, 0)
-    await wait_ready(dut)
 
-    # check the ciphertext and the tag against the KAT vector
-    cocotb.log.info('check the results against the KAT vector...')
-    log_rx('ct (sim)', ct)
-    log_rx('ct (ref)', vec.ct)
-    assert ct == vec.ct, f'ciphertext comparison failed!'
-    log_rx('tag (sim)', tag)
-    log_rx('tag (ref)', vec.tag)
-    assert tag == vec.tag, f'tag comparison failed!'
-    # this line is not reached if the test fails
-    test_duration = cocotb.utils.get_sim_time('ns') - start_time
-    cocotb.log.info('test completed successfully!')
-    cocotb.log.info(f'runtime = {test_duration} ns')
+    cocotb.log.info('encryption done.')
+    ct = b''.join(ct_buffer)
+    ct = ct[:len(pt)]
+    return (ct, tag)
+
+
+def check_result(sim_ct, sim_tag, ref_ct, ref_tag):
+    """Check the ciphertext and the tag against the KAT vector."""
+    _log('ct', sim_ct, 'sim')
+    _log('ct', ref_ct, 'ref')
+    assert sim_ct == ref_ct, f'ciphertext comparison failed!'
+    _log('tag', sim_tag, 'sim')
+    _log('tag', ref_tag, 'ref')
+    assert sim_tag == ref_tag, f'tag comparison failed!'
+
+
+async def test_sample(dut, vec, delay: int = 0):
+    log_vec(vec)
+    await configure_ascon(dut, vec.key, vec.nonce)
+    ct, tag = await encrypt(dut, vec.ad, vec.pt, delay)
+    check_result(ct, tag, vec.ct, vec.tag)
 
 
 def get_int_param(key, default=None) -> Optional[int]:
-    if key in os.environ:
+    try:
         return int(os.environ[key])
-    else:
+    except (KeyError, TypeError):
         return default
 
 
 @cocotb.test()
-async def test_ascon(dut):
+async def test_single(dut):
     # run the clock
-    clk = Clock(dut.clk_in, *PERIOD)
+    clk = Clock(dut.clk_in, 100, 'ns')
     cocotb.start_soon(clk.start())
     cocotb.start_soon(reset_dut(dut))
     # retrieve KAT vectors from the Ascon reference implementation and test them
@@ -282,13 +300,30 @@ async def test_ascon(dut):
         'delay': get_int_param('PROG_DELAY', 0)
     }
     if sample_count is not None:
-        vec = ascon_kat_vectors.get(sample_count)
-        await cocotb.triggers.with_timeout(test_ascon_vector(dut, vec, **test_params), *TIMEOUT)
+        vec = ascon_kat.get(sample_count)
+        await cocotb.triggers.with_timeout(test_sample(dut, vec, **test_params), 25, 'us')
     else:
         kwargs = {
-            'k': get_int_param('SAMPLE_SIZE'),
+            'k': 1,
             'ad_size': get_int_param('AD_SIZE'),
             'pt_size': get_int_param('PT_SIZE'),
         }
-        for vec in ascon_kat_vectors.select(**kwargs):
-            await cocotb.triggers.with_timeout(test_ascon_vector(dut, vec, **test_params), *TIMEOUT)
+        for vec in ascon_kat.select(**kwargs):
+            await cocotb.triggers.with_timeout(test_sample(dut, vec, **test_params), 25, 'us')
+
+
+@cocotb.test()
+async def test_sequence(dut):
+    # run the clock
+    clk = Clock(dut.clk_in, 100, 'ns')
+    cocotb.start_soon(clk.start())
+    cocotb.start_soon(reset_dut(dut))
+    # retrieve KAT vectors from the Ascon reference implementation and test them
+    test_params = {
+        'delay': get_int_param('PROG_DELAY')
+    }
+    kwargs = {
+        'k': get_int_param('SAMPLE_SIZE'),
+    }
+    for vec in ascon_kat.select(**kwargs):
+        await cocotb.triggers.with_timeout(test_sample(dut, vec, **test_params), 25, 'us')
