@@ -10,9 +10,6 @@ TOPLEVEL_LANG ?= verilog
 ifeq ($(SIM), verilator)
 	# dump waveforms
 	EXTRA_ARGS += --trace --trace-structs
-else ifeq ($(SIM), modelsim)
-	# start GUI
-	GUI=1
 endif
 
 VERILOG_SOURCES += $(SRC_DIR)/ascon_pack.sv
