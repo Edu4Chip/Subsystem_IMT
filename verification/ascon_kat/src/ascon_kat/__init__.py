@@ -32,7 +32,7 @@ Examples:
         for vec in ascon_kat_vectors.select():
             print(vec)
 """
-import dataclasses
+
 import enum
 import pathlib
 import random
@@ -41,35 +41,44 @@ from typing import List, Dict, Tuple, Iterator, Optional
 
 
 class Variant(enum.Enum):
-    Ascon128 = 'Ascon-128'
+    Ascon128 = "Ascon-128"
 
 
-@dataclasses.dataclass
 class Vector:
-    count: int
-    key: bytes
-    nonce: bytes
-    ad: bytes
-    pt: bytes
-    ct: bytes
-    tag: bytes
-    ad_size: int
-    pt_size: int
-    variant: Variant
+
+    def __init__(
+        self,
+        count: int,
+        key: bytes,
+        nonce: bytes,
+        ad: bytes,
+        pt: bytes,
+        ct: bytes,
+        tag: bytes,
+        variant: Variant
+    ):
+        self.count = count
+        self.key = key
+        self.nonce = nonce
+        self.ad = ad
+        self.pt = pt
+        self.ct = ct
+        self.tag = tag
+        self.variant = variant
 
     def __repr__(self) -> str:
         args = [
-            ('count', self.count),
-            ('key', f"'{self.key.hex()}'"),
-            ('nonce', f"'{self.nonce.hex()}'"),
-            (f'ad', f"'{self.ad.hex()}' ({self.ad_size} B)"),
-            (f'pt', f"'{self.pt.hex()}' ({self.pt_size} B)"),
-            ('ct', f"'{self.ct.hex()}'"),
-            ('tag', f"'{self.tag.hex()}'"),
-            ('variant', f"'{self.variant.value}'"),
+            ("count", self.count),
+            ("key", f"'{self.key.hex()}'"),
+            ("nonce", f"'{self.nonce.hex()}'"),
+            (f"ad", f"'{self.ad.hex()}' ({self.ad_size} B)"),
+            (f"pt", f"'{self.pt.hex()}' ({self.pt_size} B)"),
+            ("ct", f"'{self.ct.hex()}'"),
+            ("tag", f"'{self.tag.hex()}'"),
+            ("variant", f"'{self.variant.value}'"),
         ]
-        args = ', '.join(f'{attr}={value}' for attr, value in args)
-        return f'{self.__class__.__name__}({args})'
+        args = ", ".join(f"{attr}={value}" for attr, value in args)
+        return f"{self.__class__.__name__}({args})"
 
     @property
     def ad_w_padding(self):
@@ -79,11 +88,18 @@ class Vector:
     def pt_w_padding(self):
         return pad(self.pt, allow_empty=False)
 
+    @property
+    def ad_size(self):
+        return len(self.ad)
     
+    @property
+    def pt_size(self):
+        return len(self.pt)
+
 
 def pad(data: bytes, block_size=8, allow_empty=True) -> bytes:
     """Pad Ascon input data.
-    
+
     Ascon specifications permits empty associated data but requires at least one block of plaintext.
     In order to mimick this conditional behavior, an empty bytes object is returned when
       an empty bytes object is provided and argument "allow_empty" is True.
@@ -91,25 +107,24 @@ def pad(data: bytes, block_size=8, allow_empty=True) -> bytes:
     if (not data) and allow_empty:
         return data
     n = block_size - (len(data) % block_size) - 1
-    return data + b'\x80' + (b'\x00') * n
+    return data + b"\x80" + (b"\x00") * n
 
 
 def vector_from_dict(vec: dict) -> Vector:
     """Create a Vector object from a text representation.
-    
+
     The original size of input data is stored before data is padded.
     The ciphertext and the tag are extracted from the concatenated "CT" field based on the plaintext size.
     """
-    count = int(vec['Count'])
-    key = bytes.fromhex(vec['Key'])
-    nonce = bytes.fromhex(vec['Nonce'])
-    ad = bytes.fromhex(vec['AD'])
-    pt = bytes.fromhex(vec['PT'])
-    ct = bytes.fromhex(vec['CT'])
-    ad_size = len(ad)
+    count = int(vec["Count"])
+    key = bytes.fromhex(vec["Key"])
+    nonce = bytes.fromhex(vec["Nonce"])
+    ad = bytes.fromhex(vec["AD"])
+    pt = bytes.fromhex(vec["PT"])
+    ct = bytes.fromhex(vec["CT"])
     pt_size = len(pt)
     ct, tag = ct[:pt_size], ct[pt_size:]
-    variant = vec['variant']
+    variant = vec["variant"]
     return Vector(
         count=count,
         key=key,
@@ -118,14 +133,12 @@ def vector_from_dict(vec: dict) -> Vector:
         pt=pt,
         ct=ct,
         tag=tag,
-        ad_size=ad_size,
-        pt_size=pt_size,
         variant=variant
     )
 
 
-_vectors : List[Vector] = []
-_by_count : Dict[Tuple[int, Variant], Vector] = {}
+_vectors: List[Vector] = []
+_by_count: Dict[Tuple[int, Variant], Vector] = {}
 
 
 def _update_from_dict(d):
@@ -141,15 +154,15 @@ def read_kat(path, variant: Variant = Variant.Ascon128):
     if not isinstance(variant, Variant):
         raise TypeError(f"argument 'variant' must be of type Variant.")
     vec = {}
-    variant = {'variant': variant}
-    with open(str(path), 'r') as f:
+    variant = {"variant": variant}
+    with open(str(path), "r") as f:
         for line in f:
             if not line.strip() and vec:
                 vec.update(variant)
                 _update_from_dict(vec)
                 vec = {}
             else:
-                key, value = line.split('=', 1)
+                key, value = line.split("=", 1)
                 vec[key.strip()] = value.strip()
         if vec:
             vec.update(variant)
@@ -157,13 +170,13 @@ def read_kat(path, variant: Variant = Variant.Ascon128):
 
 
 def select(
-        ad_size: Optional[int] = None,
-        pt_size: Optional[int] = None,
-        k: Optional[int] = None,
-        variant: Variant = Variant.Ascon128
-    ) -> Iterator[Vector]:
+    ad_size: Optional[int] = None,
+    pt_size: Optional[int] = None,
+    k: Optional[int] = None,
+    variant: Variant = Variant.Ascon128,
+) -> Iterator[Vector]:
     """Return an iterator over a selection of KAT vectors.
-    
+
     If argument "ad_size" or "pt_size" are provided, vectors are selected from a subset based on these attributes.
     If argument "k" is provided, vectors are selected from a random k-sample of the selected subset.
     Otherwise, an iterator over the whole subset is returned.
@@ -173,15 +186,19 @@ def select(
     subset = filter(lambda v: v.variant == variant, _vectors)
     if ad_size is not None:
         if ad_size < 0:
-            raise ValueError(f'the ad size must be greater or equal to 0, got: {ad_size}')
+            raise ValueError(
+                f"the ad size must be greater or equal to 0, got: {ad_size}"
+            )
         subset = (v for v in subset if v.ad_size == ad_size)
     if pt_size is not None:
         if pt_size < 0:
-            raise ValueError(f'the pt size must be greater or equal to 0, got: {pt_size}')
+            raise ValueError(
+                f"the pt size must be greater or equal to 0, got: {pt_size}"
+            )
         subset = (v for v in subset if v.pt_size == pt_size)
     if k is not None:
         if k < 1:
-            raise ValueError(f'the sample size must be greater or equal to 1, got: {k}')
+            raise ValueError(f"the sample size must be greater or equal to 1, got: {k}")
         indices = [v.count for v in subset]
         indices = random.sample(indices, min(k, len(indices)))
         subset = (get(i, variant) for i in indices)
@@ -202,4 +219,3 @@ def get_size(variant: Variant = Variant.Ascon128) -> int:
     if not isinstance(variant, Variant):
         raise TypeError(f"argument 'variant' must be of type Variant.")
     return sum(1 for _ in filter(lambda v: v.variant == variant, _vectors))
-
