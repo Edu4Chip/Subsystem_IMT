@@ -81,7 +81,7 @@ module permutation
   assign state2_in_s[4] = state1_mux_s[4];
 
   // addition layer
-  assign round_constant_s = RndConst[rnd_i];
+  assign round_constant_s = (rnd_i < ROUND_NO) ? RndConst[rnd_i] : 8'h00;
   assign state3_add_s[0] = state2_in_s[0];
   assign state3_add_s[1] = state2_in_s[1];
   assign state3_add_s[2] = state2_in_s[2] ^ {56'd0, round_constant_s};

@@ -10,9 +10,11 @@ package ascon_pack;
   parameter int unsigned BLOCK_WIDTH = 64;
   parameter int unsigned BLOCK_BYTE_AW = 3;
   parameter int unsigned ROUND_WIDTH = 4;
+  parameter int unsigned ROUND_NO = 12;
   parameter u64_t ASCON128_IV = 64'h80400c0600000000;
   parameter u64_t DOM_SEP_CONST = 64'd1;
-  parameter u8_t RndConst[16] = {
+
+  parameter u8_t RndConst[ROUND_NO] = {
     8'hF0,
     8'hE1,
     8'hD2,
@@ -24,12 +26,9 @@ package ascon_pack;
     8'h78,
     8'h69,
     8'h5A,
-    8'h4B,
-    8'h00,
-    8'h00,
-    8'h00,
-    8'h00
+    8'h4B
   };
+
   parameter logic [4:0] Sbox[32] = {
     5'h04,
     5'h0B,
