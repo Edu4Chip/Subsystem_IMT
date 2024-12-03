@@ -1,7 +1,7 @@
 build/*
 
 # add here object files etc
-verification/**/*.vcd
-verification/**/*.xml
-verification/**/__pycache__
-verification/**/sim_build
+sim/**/*.vcd
+sim/**/*.xml
+sim/**/__pycache__
+sim/**/sim_build
