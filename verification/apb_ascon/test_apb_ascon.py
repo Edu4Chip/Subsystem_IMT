@@ -326,9 +326,11 @@ async def test_sequence(dut):
     cocotb.start_soon(clk.start())
     cocotb.start_soon(reset_dut(dut))
     # retrieve KAT vectors from the Ascon reference implementation and test them
-    test_params = {"delay": get_int_param("PROG_DELAY")}
+    test_params = {"delay": get_int_param("PROG_DELAY", 0)}
     kwargs = {
         "k": get_int_param("SAMPLE_SIZE"),
+        "ad_size": get_int_param("AD_SIZE"),
+        "pt_size": get_int_param("PT_SIZE"),
     }
     for vec in ascon_kat.select(**kwargs):
         await cocotb.triggers.with_timeout(
