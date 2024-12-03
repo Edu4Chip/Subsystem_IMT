@@ -26,13 +26,13 @@ python3 -m venv venv
 
 ```
 source venv/bin/activate
-python -m pip install cocotb subsystem_imt/verification/ascon_kat
+python -m pip install cocotb subsystem_imt/sim/ascon_kat
 ```
 
 4. Simulate the testbench in batch mode with `make`.
 
 ```
-cd subsystem_imt/verification/apb_ascon
+cd subsystem_imt/sim/apb_ascon
 SIM=modelsim make
 ```
 
