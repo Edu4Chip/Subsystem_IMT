@@ -21,6 +21,7 @@ module ascon_fsm
     // Status
     input  logic start_i,
     output logic ready_o,
+    output logic first_round_o,
 
     // AD FIFO
     input  logic ad_empty_i,
@@ -158,6 +159,7 @@ module ascon_fsm
 
   always_comb begin
     ready_o = 0;
+    first_round_o = 0;
     sel_ad_o = 0;
     ad_pop_o = 0;
     ad_flush_o = 0;
@@ -224,6 +226,7 @@ module ascon_fsm
       InitStart: begin
         // initialize the permutation state
         // compute the first round of the initialization
+        first_round_o = 1;
         en_state_o = 1;
         en_rnd_cnt_o = 1;
         sel_state_init_o = 1;
@@ -323,6 +326,7 @@ module ascon_fsm
       ADStart: begin
         // pop an AD block
         // compute the first round of the AD block permutation
+        first_round_o = 1;
         en_state_o = 1;
         en_rnd_cnt_o = 1;
         sel_ad_o = 1;
@@ -366,6 +370,7 @@ module ascon_fsm
       ADPaddingStart: begin
         // use a 64-bit block padding as the last AD block
         // compute the first round of the AD block permutation
+        first_round_o = 1;
         en_state_o = 1;
         en_rnd_cnt_o = 1;
         sel_ad_o = 1;
@@ -385,6 +390,7 @@ module ascon_fsm
       ADLastStart: begin
         // pop the last AD block and enable the block padding
         // compute the first round of the AD block permutation
+        first_round_o = 1;
         en_state_o = 1;
         en_rnd_cnt_o = 1;
         sel_ad_o = 1;
@@ -453,6 +459,7 @@ module ascon_fsm
         // pop a PT block
         // compute the first round of the PT block permutation
         // push a CT block
+        first_round_o = 1;
         en_state_o = 1;
         en_rnd_cnt_o = 1;
         pt_pop_o = 1;
@@ -508,6 +515,7 @@ module ascon_fsm
         // use a 64-bit block padding as the last PT block
         // compute the first round of the finalization
         // do not produce a CT block (it will be truncated anyway)
+        first_round_o = 1;
         en_state_o = 1;
         en_rnd_cnt_o = 1;
         sel_xor_ext_o = 1;
@@ -527,6 +535,7 @@ module ascon_fsm
         // pop the last PT block and enable the block padding
         // compute the first round of the finalization
         // push a CT block with the truncated block part set to zero.
+        first_round_o = 1;
         en_state_o = 1;
         en_rnd_cnt_o = 1;
         pt_pop_o = 1;

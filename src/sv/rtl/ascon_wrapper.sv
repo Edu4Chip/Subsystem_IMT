@@ -24,6 +24,7 @@ module ascon_wrapper
     output logic  ready_o,
     output logic  tag_valid_o,
     output u128_t tag_o,
+    output logic  first_round_o,
 
     input  logic ad_push_i,
     input  u64_t ad_i,
@@ -102,35 +103,36 @@ module ascon_wrapper
       .DELAY_WIDTH(DELAY_WIDTH)
   ) u_ascon (
       // Clk
-      .clk        (clk),
+      .clk          (clk),
       // Reset
-      .rst_n      (rst_n),
+      .rst_n        (rst_n),
       // Control
-      .key_i      (key_i),
-      .nonce_i    (nonce_i),
-      .ad_size_i  (ad_size_i),
-      .pt_size_i  (pt_size_i),
-      .delay_i    (delay_i),
+      .key_i        (key_i),
+      .nonce_i      (nonce_i),
+      .ad_size_i    (ad_size_i),
+      .pt_size_i    (pt_size_i),
+      .delay_i      (delay_i),
       // Status and tag
-      .start_i    (start_i),
-      .ready_o    (ready_o),
-      .tag_valid_o(tag_valid_o),
-      .tag_o      (tag_o),
+      .start_i      (start_i),
+      .ready_o      (ready_o),
+      .tag_valid_o  (tag_valid_o),
+      .tag_o        (tag_o),
+      .first_round_o(first_round_o),
       // AD FIFO
-      .ad_flush_o (ad_flush_s),
-      .ad_pop_o   (ad_pop_s),
-      .ad_i       (ad_s),
-      .ad_empty_i (ad_empty_o),
+      .ad_flush_o   (ad_flush_s),
+      .ad_pop_o     (ad_pop_s),
+      .ad_i         (ad_s),
+      .ad_empty_i   (ad_empty_o),
       // PT FIFO
-      .pt_flush_o (pt_flush_s),
-      .pt_pop_o   (pt_pop_s),
-      .pt_i       (pt_s),
-      .pt_empty_i (pt_empty_o),
+      .pt_flush_o   (pt_flush_s),
+      .pt_pop_o     (pt_pop_s),
+      .pt_i         (pt_s),
+      .pt_empty_i   (pt_empty_o),
       // CT FIFO
-      .ct_flush_o (ct_flush_s),
-      .ct_push_o  (ct_push_s),
-      .ct_o       (ct_s),
-      .ct_full_i  (ct_full_o)
+      .ct_flush_o   (ct_flush_s),
+      .ct_push_o    (ct_push_s),
+      .ct_o         (ct_s),
+      .ct_full_i    (ct_full_o)
   );
 
 endmodule

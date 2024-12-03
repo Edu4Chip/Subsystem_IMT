@@ -24,6 +24,7 @@ module ascon
     output logic  ready_o,
     output logic  tag_valid_o,
     output u128_t tag_o,
+    output logic  first_round_o,
 
     // AD FIFO
     output logic ad_flush_o,
@@ -208,6 +209,7 @@ module ascon
       // Status
       .start_i          (start_i),
       .ready_o          (ready_o),
+      .first_round_o    (first_round_o),
       // AD FIFO
       .ad_empty_i       (ad_empty_i),
       .ad_pop_o         (ad_pop_o),

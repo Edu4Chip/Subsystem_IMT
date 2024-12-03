@@ -64,6 +64,7 @@ module top_ascon #(
   logic ready_s;
   logic tag_valid_s;
   u128_t tag_s;
+  logic first_round_s;
   logic ad_push_s;
   u64_t ad_s;
   logic ad_full_s;
@@ -76,6 +77,11 @@ module top_ascon #(
   u64_t ct_s;
   logic ct_full_s;
   logic ct_empty_s;
+
+  assign pmod_0_gpio_oe = 4'b0001;
+  assign pmod_0_gpo = {3'b000, first_round_s};
+  assign pmod_1_gpio_oe = 4'b0000;
+  assign pmod_1_gpo = 4'b0000;
 
   apb_registers #(
       .APB_AW     (APB_AW),
@@ -125,29 +131,30 @@ module top_ascon #(
       .DATA_AW    (DATA_AW),
       .DELAY_WIDTH(DELAY_WIDTH)
   ) u_ascon_wrapper (
-      .clk        (clk_in),
-      .rst_n      (reset_int),
-      .key_i      (key_s),
-      .nonce_i    (nonce_s),
-      .ad_size_i  (ad_size_s),
-      .pt_size_i  (pt_size_s),
-      .delay_i    (delay_s),
-      .start_i    (start_s),
-      .ready_o    (ready_s),
-      .tag_valid_o(tag_valid_s),
-      .tag_o      (tag_s),
-      .ad_push_i  (ad_push_s),
-      .ad_i       (ad_s),
-      .ad_full_o  (ad_full_s),
-      .ad_empty_o (ad_empty_s),
-      .pt_push_i  (pt_push_s),
-      .pt_i       (pt_s),
-      .pt_full_o  (pt_full_s),
-      .pt_empty_o (pt_empty_s),
-      .ct_pop_i   (ct_pop_s),
-      .ct_o       (ct_s),
-      .ct_full_o  (ct_full_s),
-      .ct_empty_o (ct_empty_s)
+      .clk          (clk_in),
+      .rst_n        (reset_int),
+      .key_i        (key_s),
+      .nonce_i      (nonce_s),
+      .ad_size_i    (ad_size_s),
+      .pt_size_i    (pt_size_s),
+      .delay_i      (delay_s),
+      .start_i      (start_s),
+      .ready_o      (ready_s),
+      .tag_valid_o  (tag_valid_s),
+      .tag_o        (tag_s),
+      .first_round_o(first_round_s),
+      .ad_push_i    (ad_push_s),
+      .ad_i         (ad_s),
+      .ad_full_o    (ad_full_s),
+      .ad_empty_o   (ad_empty_s),
+      .pt_push_i    (pt_push_s),
+      .pt_i         (pt_s),
+      .pt_full_o    (pt_full_s),
+      .pt_empty_o   (pt_empty_s),
+      .ct_pop_i     (ct_pop_s),
+      .ct_o         (ct_s),
+      .ct_full_o    (ct_full_s),
+      .ct_empty_o   (ct_empty_s)
   );
 
 endmodule
