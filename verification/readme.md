@@ -13,13 +13,13 @@ First ensure that a SystemVerilog simulator is installed on your machine. The ve
 1. Clone the repository
 
 ```
-git clone https://github.com/edu4chip/subsystem_imt.git subsystem_imt
+git clone git@github.com/edu4chip/subsystem_imt.git subsystem_imt
 ```
 
 2. Create a Python venv and activate it
 
 ```
-python3 -m venv venv python>=3.7
+python3 -m venv venv
 source venv/bin/activate
 ```
 
@@ -33,7 +33,7 @@ python -m pip install cocotb subsystem_imt/verification/ascon_kat
 
 ```
 cd subsystem_imt/verification/apb_ascon
-make
+SIM=modelsim make
 ```
 
 ### Build options and environment variables
