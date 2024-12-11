@@ -39,6 +39,7 @@ SIM=modelsim make
 5. Alternatively, compile the testbench and load it in modelsim GUI.
 
 ```
+make clean
 SIM=modelsim GUI=1 make
 ```
 
