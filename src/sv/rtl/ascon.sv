@@ -45,7 +45,7 @@ module ascon
     input  logic ct_full_i
 
 );
-  localparam int unsigned BLOCK_AW = DATA_AW - 2;
+  parameter int unsigned BLOCK_AW = DATA_AW - 2;
 
   // AD block counter
   logic en_ad_cnt_s;
