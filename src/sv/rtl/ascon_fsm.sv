@@ -137,6 +137,9 @@ module ascon_fsm
   logic pt_ready_s;
 
   logic last_rnd_next_s;
+  logic abort_s;
+
+  assign abort_s = !start_i;
 
   assign ad_idx_s = ad_size_i[2:0];
   assign ad_max_cnt_s = BLOCK_AW'(ad_size_i[DATA_AW-1:3]);
@@ -217,7 +220,9 @@ module ascon_fsm
       Delay: begin
         // wait for a fixed amount of time
         en_timer_o = 1;
-        if (timer_i == delay_i) begin
+        if (abort_s) begin
+          state_d = Idle;
+        end else if (timer_i == delay_i) begin
           state_d = InitStart;
         end else begin
           state_d = Delay;
@@ -317,7 +322,9 @@ module ascon_fsm
       end
       ADWait: begin
         // wait for an AD block
-        if (ad_ready_s) begin
+        if (abort_s) begin
+          state_d = Idle;
+        end else if (ad_ready_s) begin
           state_d = ADStart;
         end else begin
           state_d = ADWait;
@@ -381,7 +388,9 @@ module ascon_fsm
       end
       ADLastWait: begin
         // wait for the last AD block
-        if (ad_ready_s) begin
+        if (abort_s) begin
+          state_d = Idle;
+        end else if (ad_ready_s) begin
           state_d = ADLastStart;
         end else begin
           state_d = ADLastWait;
@@ -449,7 +458,9 @@ module ascon_fsm
       end
       PTWait: begin
         // wait for a PT block
-        if (pt_ready_s) begin
+        if (abort_s) begin
+          state_d = Idle;
+        end else if (pt_ready_s) begin
           state_d = PTStart;
         end else begin
           state_d = PTWait;
@@ -525,7 +536,9 @@ module ascon_fsm
       end
       FinalWait: begin
         // wait for the last PT block
-        if (pt_ready_s) begin
+        if (abort_s) begin
+          state_d = Idle;
+        end else if (pt_ready_s) begin
           state_d = FinalStart;
         end else begin
           state_d = FinalWait;
@@ -579,6 +592,7 @@ module ascon_fsm
     endcase
   end
 
+  // FSM state register
   `FF(state_q, state_d, Idle, clk, rst_n)
 
 endmodule
