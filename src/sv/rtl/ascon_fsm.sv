@@ -21,6 +21,8 @@ module ascon_fsm
     // Status
     input  logic start_i,
     output logic ready_o,
+    output logic wait_ad_o,
+    output logic wait_pt_o,
     output logic first_round_o,
 
     // AD FIFO
@@ -162,6 +164,8 @@ module ascon_fsm
 
   always_comb begin
     ready_o = 0;
+    wait_ad_o = 0;
+    wait_pt_o = 0;
     first_round_o = 0;
     sel_ad_o = 0;
     ad_pop_o = 0;
@@ -322,6 +326,7 @@ module ascon_fsm
       end
       ADWait: begin
         // wait for an AD block
+        wait_ad_o = 1;
         if (abort_s) begin
           state_d = Idle;
         end else if (ad_ready_s) begin
@@ -388,6 +393,7 @@ module ascon_fsm
       end
       ADLastWait: begin
         // wait for the last AD block
+        wait_ad_o = 1;
         if (abort_s) begin
           state_d = Idle;
         end else if (ad_ready_s) begin
@@ -458,6 +464,7 @@ module ascon_fsm
       end
       PTWait: begin
         // wait for a PT block
+        wait_pt_o = 1;
         if (abort_s) begin
           state_d = Idle;
         end else if (pt_ready_s) begin
@@ -536,6 +543,7 @@ module ascon_fsm
       end
       FinalWait: begin
         // wait for the last PT block
+        wait_pt_o = 1;
         if (abort_s) begin
           state_d = Idle;
         end else if (pt_ready_s) begin

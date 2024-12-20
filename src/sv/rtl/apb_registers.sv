@@ -34,6 +34,8 @@ module apb_registers
 
     output logic  start_o,
     input  logic  ready_i,
+    input  logic  wait_ad_i,
+    input  logic  wait_pt_i,
     input  logic  tag_valid_i,
     input  u128_t tag_i,
 
@@ -174,9 +176,9 @@ module apb_registers
             ct_full_i,
             ct_empty_i,
             pt_full_i,
-            pt_empty_i,
+            wait_pt_i,
             ad_full_i,
-            ad_empty_i,
+            wait_ad_i,
             tag_valid_i,
             ready_i
           },

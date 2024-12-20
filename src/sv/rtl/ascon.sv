@@ -22,6 +22,8 @@ module ascon
     // Status and tag
     input  logic  start_i,
     output logic  ready_o,
+    output logic  wait_ad_o,
+    output logic  wait_pt_o,
     output logic  tag_valid_o,
     output u128_t tag_o,
     output logic  first_round_o,
@@ -209,6 +211,8 @@ module ascon
       // Status
       .start_i          (start_i),
       .ready_o          (ready_o),
+      .wait_ad_o        (wait_ad_o),
+      .wait_pt_o        (wait_pt_o),
       .first_round_o    (first_round_o),
       // AD FIFO
       .ad_empty_i       (ad_empty_i),

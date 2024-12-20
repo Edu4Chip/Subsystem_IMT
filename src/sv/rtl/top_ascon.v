@@ -62,6 +62,8 @@ module top_ascon #(
   logic [DELAY_WIDTH-1:0] delay_s;
   logic start_s;
   logic ready_s;
+  logic wait_ad_s;
+  logic wait_pt_s;
   logic tag_valid_s;
   u128_t tag_s;
   logic first_round_s;
@@ -110,6 +112,8 @@ module top_ascon #(
       .delay_o    (delay_s),
       .start_o    (start_s),
       .ready_i    (ready_s),
+      .wait_ad_i  (wait_ad_s),
+      .wait_pt_i  (wait_pt_s),
       .tag_valid_i(tag_valid_s),
       .tag_i      (tag_s),
       .ad_push_o  (ad_push_s),
@@ -140,6 +144,8 @@ module top_ascon #(
       .delay_i      (delay_s),
       .start_i      (start_s),
       .ready_o      (ready_s),
+      .wait_ad_o    (wait_ad_s),
+      .wait_pt_o    (wait_pt_s),
       .tag_valid_o  (tag_valid_s),
       .tag_o        (tag_s),
       .first_round_o(first_round_s),
