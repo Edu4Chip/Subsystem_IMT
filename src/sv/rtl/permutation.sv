@@ -9,34 +9,34 @@
 module permutation
   import ascon_pack::*;
 (
-    // Clk
-    input logic clk,
+  // Clk
+  input logic clk,
 
-    // Reset
-    input logic rst_n,
+  // Reset
+  input logic rst_n,
 
-    // Control
-    input logic en_state_i,
-    input logic sel_ad_i,
-    input logic sel_state_init_i,
-    input logic sel_xor_init_i,
-    input logic sel_xor_ext_i,
-    input logic sel_xor_dom_sep_i,
-    input logic sel_xor_fin_i,
-    input logic sel_xor_tag_i,
-    input logic ct_valid_i,
-    input logic tag_valid_i,
+  // Control
+  input logic en_state_i,
+  input logic sel_ad_i,
+  input logic sel_state_init_i,
+  input logic sel_xor_init_i,
+  input logic sel_xor_ext_i,
+  input logic sel_xor_dom_sep_i,
+  input logic sel_xor_fin_i,
+  input logic sel_xor_tag_i,
+  input logic ct_valid_i,
+  input logic tag_valid_i,
 
-    // Round counter
-    input logic [ROUND_WIDTH-1:0] rnd_i,
+  // Round counter
+  input logic [ROUND_WIDTH-1:0] rnd_i,
 
-    // Ascon
-    input u128_t key_i,
-    input u128_t nonce_i,
-    input u64_t ad_i,
-    input u64_t pt_i,
-    output u64_t ct_o,
-    output u128_t tag_o
+  // Ascon
+  input  u128_t key_i,
+  input  u128_t nonce_i,
+  input  u64_t  ad_i,
+  input  u64_t  pt_i,
+  output u64_t  ct_o,
+  output u128_t tag_o
 );
   typedef u64_t state_t[5];
 
@@ -81,7 +81,7 @@ module permutation
   assign state2_in_s[4] = state1_mux_s[4];
 
   // addition layer
-  assign round_constant_s = (rnd_i < ROUND_NO) ? RndConst[rnd_i] : 8'h00;
+  assign round_constant_s = (rnd_i < ROUND_NO[ROUND_WIDTH-1:0]) ? RndConst[rnd_i] : 8'h00;
   assign state3_add_s[0] = state2_in_s[0];
   assign state3_add_s[1] = state2_in_s[1];
   assign state3_add_s[2] = state2_in_s[2] ^ {56'd0, round_constant_s};
