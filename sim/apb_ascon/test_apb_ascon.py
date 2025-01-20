@@ -6,45 +6,239 @@ import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import RisingEdge, Timer
 
-class Reg(enum.Enum):
-    """Register addresses"""
-    CTRL = "CtrlAddr"
-    STATUS = "StatusAddr"
-    KEY = "KeyAddr"
-    NONCE = "NonceAddr"
-    TAG = "TagAddr"
-    AD = "AdAddr"
-    PT = "PtAddr"
-    CT = "CtAddr"
 
-class Status(enum.IntFlag):
-    """Status register bits"""
-    Ready = enum.auto()
-    WaitAD = enum.auto()
-    WaitPT = enum.auto()
-    TagValid = enum.auto()
-    ADFull = enum.auto()
-    PTFull = enum.auto()
-    CTEmpty = enum.auto()
-    CTFull = enum.auto()
+class AsconException(Exception):
+    pass
 
-StatusOffset = {
-    Status.Ready: "ReadyOffset",
-    Status.WaitAD: "WaitAdOffset",
-    Status.WaitPT: "WaitPtOffset",
-    Status.TagValid: "TagValidOffset",
-    Status.ADFull: "AdFullOffset",
-    Status.PTFull: "PtFullOffset",
-    Status.CTEmpty: "CtEmptyOffset",
-    Status.CTFull: "CtFullOffset",
-}
+class Ascon:
+    @staticmethod
+    def get_param_value(dut, attr):
+        """Get parameter value from DUT APB register module"""
+        return getattr(dut.u_apb_registers, attr).value
 
-class Ctrl(enum.Enum):
-    """Control register field offsets"""
-    StartBit = "StartBitOffset"
-    ADSize = "ADSizeOffset"
-    PTSize = "PTSizeOffset"
-    Delay = "DelayOffset"
+    class Reg:
+        """Register addresses"""
+        def __init__(self, ctrl, status, key, nonce, tag, ad, pt, ct):
+            self.ctrl = ctrl
+            self.status = status
+            self.key = key
+            self.nonce = nonce
+            self.tag = tag
+            self.ad = ad
+            self.pt = pt
+            self.ct = ct
+
+    class Status(enum.IntFlag):
+        """Status register flags"""
+        READY = enum.auto()
+        WAIT_AD = enum.auto()
+        WAIT_PT = enum.auto()
+        TAG_VALID = enum.auto()
+        AD_FULL = enum.auto()
+        PT_FULL = enum.auto()
+        CT_EMPTY = enum.auto()
+        CT_FULL = enum.auto()
+
+    class StatusFields:
+        """Status register bit offsets"""
+        def __init__(self, ready, wait_ad, wait_pt, tag_valid, ad_full, pt_full, ct_empty, ct_full):
+            self.flags = [
+                (Ascon.Status.READY, (1 << ready)),
+                (Ascon.Status.WAIT_AD, (1 << wait_ad)),
+                (Ascon.Status.WAIT_PT, (1 << wait_pt)),
+                (Ascon.Status.TAG_VALID, (1 << tag_valid)),
+                (Ascon.Status.AD_FULL, (1 << ad_full)),
+                (Ascon.Status.PT_FULL, (1 << pt_full)),
+                (Ascon.Status.CT_EMPTY, (1 << ct_empty)),
+                (Ascon.Status.CT_FULL, (1 << ct_full)),
+            ]
+
+        def from_int(self, status_value):
+            """Create flag enum"""
+            result = Ascon.Status(0)
+            
+            # Build status flags dynamically using DUT offsets
+            for flag, mask in self.flags:
+                if status_value & mask:
+                    result |= flag
+                    
+            return result
+
+    class CtrlFields:
+        """Control register field offsets"""
+        def __init__(self, startbit, ad_size, pt_size, delay, data_width, delay_width):
+            self.startbit = startbit
+            self.ad_size = ad_size
+            self.pt_size = pt_size
+            self.delay = delay
+            self.size_mask = (1 << data_width) - 1
+            self.delay_mask = (1 << delay_width) - 1
+
+        def to_int(self, start=0, ad_size=0, pt_size=0, delay=0):
+            """Get the integer value for the control register"""
+            ctrl = 0
+            ctrl |= (start & 1) << self.startbit
+            ctrl |= (ad_size & self.size_mask) << self.ad_size
+            ctrl |= (pt_size & self.size_mask) << self.pt_size
+            ctrl |= (delay & self.delay_mask) << self.delay
+            return ctrl
+
+    def __init__(self, dut):
+        self.dut = dut
+        self.n_bytes = self.dut.APB_DW.value // 8
+        self.reg = self.Reg(
+            ctrl=self.get_param_value(dut, "CtrlAddr"),
+            status=self.get_param_value(dut, "StatusAddr"),
+            key=self.get_param_value(dut, "KeyAddr"),
+            nonce=self.get_param_value(dut, "NonceAddr"),
+            tag=self.get_param_value(dut, "TagAddr"),
+            ad=self.get_param_value(dut, "AdAddr"),
+            pt=self.get_param_value(dut, "PtAddr"),
+            ct=self.get_param_value(dut, "CtAddr"),
+        )
+        self.status = self.StatusFields(
+            ready=self.get_param_value(dut, "ReadyOffset"),
+            wait_ad=self.get_param_value(dut, "WaitAdOffset"),
+            wait_pt=self.get_param_value(dut, "WaitPtOffset"),
+            tag_valid=self.get_param_value(dut, "TagValidOffset"),
+            ad_full=self.get_param_value(dut, "AdFullOffset"),
+            pt_full=self.get_param_value(dut, "PtFullOffset"),
+            ct_empty=self.get_param_value(dut, "CtEmptyOffset"),
+            ct_full=self.get_param_value(dut, "CtFullOffset"),
+        )
+        self.ctrl = self.CtrlFields(
+            startbit=self.get_param_value(dut, "StartBitOffset"),
+            ad_size=self.get_param_value(dut, "ADSizeOffset"),
+            pt_size=self.get_param_value(dut, "PTSizeOffset"),
+            delay=self.get_param_value(dut, "DelayOffset"),
+            data_width=self.get_param_value(dut, "DATA_AW"),
+            delay_width=self.get_param_value(dut, "DELAY_WIDTH"),
+        )
+        self.buf_size = dut.FifoDepth.value * 8
+
+    async def read(self, addr):
+        """Read from APB register"""
+        self.dut.PSEL.value = 1
+        self.dut.PWRITE.value = 0
+        self.dut.PADDR.value = addr
+        await RisingEdge(self.dut.clk_in)
+        self.dut.PENABLE.value = 1
+        await RisingEdge(self.dut.clk_in)
+        while not self.dut.PREADY.value:
+            await RisingEdge(self.dut.clk_in)
+        data = self.dut.PRDATA.value.integer
+        self.dut.PSEL.value = 0
+        self.dut.PENABLE.value = 0
+        cocotb.log.info(f'read {data:08x} @ {addr:02x}')
+        return data
+
+    async def write(self, addr, data):
+        """Write to APB register"""
+        cocotb.log.info(f'write {data:08x} @ {addr:02x}')
+        self.dut.PSEL.value = 1
+        self.dut.PWRITE.value = 1
+        self.dut.PADDR.value = addr
+        self.dut.PWDATA.value = data
+        await RisingEdge(self.dut.clk_in)
+        self.dut.PENABLE.value = 1
+        await RisingEdge(self.dut.clk_in)
+        while not self.dut.PREADY.value:
+            await RisingEdge(self.dut.clk_in)
+        self.dut.PSEL.value = 0
+        self.dut.PENABLE.value = 0
+
+    async def read_seq(self, addr, n_bytes, byteorder='little'):
+        """Read from consecutive APB registers"""
+        buf = bytearray()
+        for i in range(0, n_bytes, self.n_bytes):
+            value = await self.read(addr + i)
+            chunk = int.to_bytes(value, self.n_bytes, byteorder=byteorder)
+            buf.extend(chunk)
+        return bytes(buf[:n_bytes])
+
+    async def write_seq(self, addr, data, n_bytes, byteorder='little'):
+        """Write to consecutive APB registers"""
+        for i in range(0, n_bytes, self.n_bytes):
+            value = int.from_bytes(data[i:i+self.n_bytes], byteorder=byteorder)
+            await self.write(addr + i, value)
+
+    async def wait(self, flag, timeout):
+        """Wait for status"""
+        for _ in range(timeout):
+            status = await self.read(self.reg.status)
+            if flag in self.status.from_int(status):
+                break
+        else:
+            raise AsconException(f'{flag.name} timeout after {timeout} trials')
+
+    async def fast_encrypt(self, vector, timeout=100):
+        """Perform a fast encryption operation"""
+        if len(vector.ad) > self.buf_size or len(vector.pt) > self.buf_size:
+            raise AsconException(f'input vector too large for fast_encrypt: ad={len(vector.ad)} B, pt={len(vector.pt)} B')
+
+        # Clear control register
+        await self.write(self.reg.ctrl, 0)
+        
+        # Wait for ready status
+        await self.wait(self.Status.READY, timeout=timeout)
+
+        # Write key and nonce
+        await self.write_seq(self.reg.key, vector.key, len(vector.key))
+        await self.write_seq(self.reg.nonce, vector.nonce, len(vector.nonce))
+        
+        # Configure control register
+        ctrl_value = self.ctrl.to_int(
+            start=1,
+            ad_size=len(vector.ad),
+            pt_size=len(vector.pt)
+        )
+        await self.write(self.reg.ctrl, ctrl_value)
+        
+        # Write AD
+        buf = vector.ad
+        while buf:
+            chunk, buf = buf[:8], buf[8:]
+            await self.write_seq(self.reg.ad, chunk, 8)
+
+        # Write PT
+        buf = vector.pt
+        while buf:
+            chunk, buf = buf[:8], buf[8:]
+            await self.write_seq(self.reg.pt, chunk, 8)
+
+        # Read CT
+        ct = bytearray()
+        while len(ct) < len(vector.pt):
+            status = await self.read(self.reg.status)
+            status = self.status.from_int(status)
+            if self.Status.TAG_VALID in status:
+                raise AsconException('bit TAG_VALID set before the end of the encryption')
+            elif self.Status.CT_EMPTY not in status:
+                chunk = await self.read_seq(self.reg.ct, 8)
+                ct.extend(chunk)
+        ct = bytes(ct[:len(vector.pt)])
+
+        # Wait for completion of the encryption
+        await self.wait(self.Status.TAG_VALID, timeout=timeout)
+
+        # Read tag
+        tag = await self.read_seq(self.reg.tag, 16)
+
+        # Clear control register
+        await self.write(self.reg.ctrl, 0)
+        
+        # Wait for ready status
+        await self.wait(self.Status.READY, timeout=timeout)
+
+        # Return results
+        return ct, tag
+
+    async def reset(self):
+        """Reset the DUT"""
+        self.dut.reset_int.value = 0
+        await Timer(20, units="ns")
+        self.dut.reset_int.value = 1
+        await Timer(20, units="ns")
 
 class KATVector:
     """Known Answer Test vector"""
@@ -57,239 +251,87 @@ class KATVector:
         self.ct = ct
         self.tag = tag
 
-def reg_addr(dut, reg):
-    """Get register address from DUT"""
-    return int(getattr(dut.u_apb_registers, reg.value).value)
+    @classmethod
+    def load(cls, filename, filt=None, sample_size=None):
+        """Load KAT vectors from file"""
+        vectors = []
+        current = {}
+        
+        with open(filename, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    if current:
+                        pt = bytes.fromhex(current.get('pt', ''))
+                        total_ct = bytes.fromhex(current.get('ct', ''))
+                        ct, tag = total_ct[:len(pt)], total_ct[len(pt):]
+                        vec = cls(
+                            count=int(current.get('count', '0')),
+                            key=bytes.fromhex(current.get('key', '')),
+                            nonce=bytes.fromhex(current.get('nonce', '')),
+                            pt=pt,
+                            ad=bytes.fromhex(current.get('ad', '')),
+                            ct=ct,
+                            tag=tag
+                        )
+                        if not filt or filt(vec):
+                            vectors.append(vec)
+                    current = {}
+                    continue
+                    
+                if '=' in line:
+                    key, value = map(str.strip, line.split('='))
+                    current[key.lower()] = value
+                    
+        if sample_size is not None:
+            vectors = random.sample(vectors, min(sample_size, len(vectors)))
 
-def status_offset(dut, flag):
-    """Get status bit offset from DUT"""
-    return int(getattr(dut.u_apb_registers, StatusOffset[flag.value]).value)
-
-def ctrl_offset(dut, flag):
-    """Get control bit offset from DUT"""
-    return int(getattr(dut.u_apb_registers, flag.value).value)
-
-def ctrl_width(dut, field):
-    """Get control register field width from DUT"""
-    if field in (Ctrl.ADSize, Ctrl.PTSize):
-        return int(dut.u_apb_registers.DATA_AW.value)
-    elif field == Ctrl.Delay:
-        return int(dut.u_apb_registers.DELAY_WIDTH.value)
-    else:  # StartBit is always 1 bit
-        return 1
-
-async def reset_dut(dut):
-    """Reset the DUT"""
-    dut.reset_int.value = 0
-    await Timer(20, units="ns")
-    dut.reset_int.value = 1
-    await Timer(20, units="ns")
-
-async def apb_write(dut, reg, data, offset=0):
-    """Write to APB register using dynamic address"""
-    addr = reg_addr(dut, reg) + offset
-    dut.PSEL.value = 1
-    dut.PWRITE.value = 1
-    dut.PADDR.value = addr
-    dut.PWDATA.value = data
-    await RisingEdge(dut.clk_in)
-    dut.PENABLE.value = 1
-    await RisingEdge(dut.clk_in)
-    while not dut.PREADY.value:
-        await RisingEdge(dut.clk_in)
-    dut.PSEL.value = 0
-    dut.PENABLE.value = 0
-
-async def apb_write_bytes(dut, reg, data, offset=0, byteorder='little'):
-    """Write to APB register using dynamic address"""
-    data = int.from_bytes(data, byteorder=byteorder)
-    await apb_write(dut, reg, data, offset)
-
-async def apb_read(dut, reg, offset=0):
-    """Read from APB register using dynamic address"""
-    addr = reg_addr(dut, reg) + offset
-    dut.PSEL.value = 1
-    dut.PWRITE.value = 0
-    dut.PADDR.value = addr
-    await RisingEdge(dut.clk_in)
-    dut.PENABLE.value = 1
-    await RisingEdge(dut.clk_in)
-    while not dut.PREADY.value:
-        await RisingEdge(dut.clk_in)
-    data = dut.PRDATA.value.integer
-    dut.PSEL.value = 0
-    dut.PENABLE.value = 0
-    return data
-
-async def apb_read_bytes(dut, reg, offset=0, byteorder='little'):
-    """Read from APB register using dynamic address"""
-    data = await apb_read(dut, reg, offset)
-    return int.to_bytes(data, dut.APB_DW.value // 8, byteorder=byteorder)
-
-async def apb_cfg(dut, start=0, ad_size=0, pt_size=0, delay=0):
-    """Configure control register using dynamic offsets and widths"""
-    ctrl = 0
-    
-    # Build each field with dynamic offset and width
-    for field, value in [
-        (Ctrl.StartBit, start),
-        (Ctrl.ADSize, ad_size),
-        (Ctrl.PTSize, pt_size),
-        (Ctrl.Delay, delay)
-    ]:
-        width = ctrl_width(dut, field)
-        mask = (1 << width) - 1
-        offset = ctrl_offset(dut, field)
-        ctrl |= (value & mask) << offset
-
-    await apb_write(dut, Reg.CTRL, ctrl)
-
-async def apb_status(dut):
-    """Read status register and create flag enum"""
-    status_value = await apb_read(dut, Reg.STATUS)
-    result = Status(0)
-    
-    # Build status flags dynamically using DUT offsets
-    for flag in Status:
-        if status_value & (1 << status_offset(dut, flag)):
-            result |= flag
-            
-    return result
-
-def load(filename, filt=None):
-    """Load KAT vectors from file"""
-    vectors = []
-    current = {}
-    
-    with open(filename, 'r') as f:
-        for line in f:
-            line = line.strip()
-            if not line:
-                if current:
-                    pt = bytes.fromhex(current.get('pt', ''))
-                    total_ct = bytes.fromhex(current.get('ct', ''))
-                    ct, tag = total_ct[:len(pt)], total_ct[len(pt):]
-                    vec = KATVector(
-                        count=int(current.get('count', '0')),
-                        key=bytes.fromhex(current.get('key', '')),
-                        nonce=bytes.fromhex(current.get('nonce', '')),
-                        pt=pt,
-                        ad=bytes.fromhex(current.get('ad', '')),
-                        ct=ct,
-                        tag=tag
-                    )
-                    if not filt or filt(vec):
-                        vectors.append(vec)
-                current = {}
-                continue
-                
-            if '=' in line:
-                key, value = map(str.strip, line.split('='))
-                current[key.lower()] = value
-                
-    return vectors
-
-def shuffle(vectors, size=None):
-    """Get random sample of vectors"""
-    if size is None:
         return vectors
-    return random.sample(vectors, min(size, len(vectors)))
 
-async def encrypt(dut, vector):
-    """Perform encryption operation"""
-    cocotb.log.info(f'testing vector with Count = {vector.count}...')
-
-    n_bytes = dut.APB_DW.value // 8
-
-    # Clear control register
-    await apb_cfg(dut)
-    
-    # Wait for ready status
-    while Status.Ready not in await apb_status(dut):
-        await RisingEdge(dut.clk_in)
-    
-    # Write key and nonce
-    for reg, data in [(Reg.KEY, vector.key), (Reg.NONCE, vector.nonce)]:
-        for i in range(0, len(data), n_bytes):
-            await apb_write_bytes(dut, reg, data[i:i+n_bytes], offset=i)
-    
-    # Configure control register
-    await apb_cfg(dut, start=1, ad_size=len(vector.ad), pt_size=len(vector.pt))
-    
-    # Write AD and PT data
-    for reg, data, full in [(Reg.AD, vector.ad, Status.ADFull), (Reg.PT, vector.pt, Status.PTFull)]:
-        for i in range(0, len(data), 8):
-            chunk = data[i:i+8].ljust(8, b'\x00')
-            while full in await apb_status(dut):
-                await RisingEdge(dut.clk_in)
-            for i in range(0, len(chunk), n_bytes):
-                await apb_write_bytes(dut, reg, chunk[i:i+n_bytes], offset=i)
-    
-    # Wait for completion
-    while Status.TagValid not in await apb_status(dut):
-        await RisingEdge(dut.clk_in)
-    
-    # Read ciphertext
-    ct = bytearray()
-    while len(ct) < len(vector.pt):
-        while Status.CTEmpty in await apb_status(dut):
-            await RisingEdge(dut.clk_in)
-        for i in range(0, 8, n_bytes):
-            ct.extend(await apb_read_bytes(dut, Reg.CT, offset=i))
-    ct = bytes(ct[:len(vector.pt)])
-    
-    # Read tag
-    tag = bytearray()
-    for i in range(0, 16, n_bytes):
-        tag.extend(await apb_read_bytes(dut, Reg.TAG, offset=i))
-    tag = bytes(tag[:16])
-    
-    # Clear control register
-    await apb_cfg(dut)
-    
-    # Wait for ready status
-    while Status.Ready not in await apb_status(dut):
-        await RisingEdge(dut.clk_in)
-    
-    # Verify results
+def check_results(ct, tag, vector):
+    """Verify results"""
     assert ct == vector.ct, f"CT mismatch: got {ct.hex()}, expected {vector.ct.hex()}"
     assert tag == vector.tag, f"Tag mismatch: got {tag.hex()}, expected {vector.tag.hex()}"
 
 @cocotb.test()
 async def test_vector(dut):
     """Test a single vector"""
-    kat_file = os.environ.get('KAT_PATH', 'LWC_AEAD_KAT_128_128.txt')
-
     # Start clock
     clock = Clock(dut.clk_in, 10, units="ns")
     cocotb.start_soon(clock.start())
+
+    ascon = Ascon(dut)
     
     # Reset DUT
-    await reset_dut(dut)
+    await ascon.reset()
     
-    # Load and process vector
+    # Load and process a single vector
+    kat_file = os.environ.get('KAT_PATH', 'LWC_AEAD_KAT_128_128.txt')
     count = int(os.environ.get('ID', '1'))
-    vectors = load(kat_file, lambda v: v.count == count)
+    vectors = KATVector.load(kat_file, lambda v: v.count == count)
     if vectors:
-        await encrypt(dut, vectors[0])
+        cocotb.log.info(f'testing vector with Count = {vectors[0].count}...')
+        ct, tag = await ascon.fast_encrypt(vectors[0])
+        check_results(ct, tag, vectors[0])
     else:
         cocotb.log.error(f'no vector found with Count = {count}.')
 
 @cocotb.test()
 async def test_sample(dut):
     """Test a random sample of vectors"""
-    kat_file = os.environ.get('KAT_PATH', 'LWC_AEAD_KAT_128_128.txt')
-
     # Start clock
     clock = Clock(dut.clk_in, 10, units="ns")
     cocotb.start_soon(clock.start())
     
+    ascon = Ascon(dut)
+
     # Reset DUT
-    await reset_dut(dut)
+    await ascon.reset()
     
-    # Load and process vectors
+    # Load and process a sample of vectors
+    kat_file = os.environ.get('KAT_PATH', 'LWC_AEAD_KAT_128_128.txt')
     sample_size = os.environ.get('SAMPLE_SIZE', None)
-    vectors = load(kat_file)
-    vectors = shuffle(vectors, sample_size)
-    for vector in vectors:
-        await encrypt(dut, vector)
+    for vector in KATVector.load(kat_file, sample_size=sample_size):
+        cocotb.log.info(f'testing vector with Count = {vector.count}...')
+        ct, tag = await ascon.fast_encrypt(vector)
+        check_results(ct, tag, vector)
