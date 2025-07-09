@@ -55,7 +55,7 @@ module ascon_wrapper
   logic ct_push_s;
   u64_t ct_s;
 
-  fifo #(
+  ascon_fifo #(
       .DATA_WIDTH(BLOCK_WIDTH),
       .DEPTH     (FifoDepth)
   ) u_fifo_ad (
@@ -70,7 +70,7 @@ module ascon_wrapper
       .empty_o(ad_empty_o)
   );
 
-  fifo #(
+  ascon_fifo #(
       .DATA_WIDTH(BLOCK_WIDTH),
       .DEPTH     (FifoDepth)
   ) u_fifo_pt (
@@ -85,7 +85,7 @@ module ascon_wrapper
       .empty_o(pt_empty_o)
   );
 
-  fifo #(
+  ascon_fifo #(
       .DATA_WIDTH(BLOCK_WIDTH),
       .DEPTH     (FifoDepth)
   ) u_fifo_ct (

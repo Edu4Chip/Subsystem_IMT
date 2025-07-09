@@ -100,7 +100,7 @@ module ascon
   logic sel_xor_tag_s;
   logic ct_valid_s;
 
-  counter #(
+  ascon_counter #(
       .WIDTH(BLOCK_AW)
   ) u_ad_block_counter (
       .clk       (clk),
@@ -112,7 +112,7 @@ module ascon
       .overflow_o(ad_cnt_of_s)
   );
 
-  counter #(
+  ascon_counter #(
       .WIDTH(BLOCK_AW)
   ) u_pt_block_counter (
       .clk       (clk),
@@ -124,7 +124,7 @@ module ascon
       .overflow_o(pt_cnt_of_s)
   );
 
-  counter #(
+  ascon_counter #(
       .WIDTH(ROUND_WIDTH)
   ) u_round_counter (
       .clk       (clk),
@@ -136,7 +136,7 @@ module ascon
       .overflow_o(rnd_of_s)
   );
 
-  counter #(
+  ascon_counter #(
       .WIDTH(DELAY_WIDTH)
   ) u_timer (
       .clk       (clk),

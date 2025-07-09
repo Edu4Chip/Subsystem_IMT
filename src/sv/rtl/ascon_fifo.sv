@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 `include "imt_registers.svh"
 
-module fifo #(
+module ascon_fifo #(
     parameter int unsigned DATA_WIDTH = 64,
     parameter int unsigned DEPTH = 4,
     parameter type data_t = logic [DATA_WIDTH-1:0]
