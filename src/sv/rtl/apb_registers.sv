@@ -1,5 +1,5 @@
 `timescale 1ns / 1ps
-`include "registers.svh"
+`include "imt_registers.svh"
 
 `define _SWAP(__q) {<<8{__q}}
 

@@ -1,5 +1,5 @@
 `timescale 1ns / 1ps
-`include "registers.svh"
+`include "imt_registers.svh"
 
 module ascon_fsm
   import ascon_pack::*;

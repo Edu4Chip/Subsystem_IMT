@@ -1,3 +1,6 @@
+`timescale 1ns / 1ps
+`include "imt_registers.svh"
+
 module fifo #(
     parameter int unsigned DATA_WIDTH = 64,
     parameter int unsigned DEPTH = 4,

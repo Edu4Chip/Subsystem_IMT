@@ -1,5 +1,5 @@
 `timescale 1ns / 1ps
-`include "registers.svh"
+`include "imt_registers.svh"
 
 // helper macros
 `define _RROT64(__d, __n) {__d[__n-1:0], __d[63:__n]}

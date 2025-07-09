@@ -1,3 +1,6 @@
+`timescale 1ns / 1ps
+`include "imt_registers.svh"
+
 module counter #(
     parameter int unsigned WIDTH = 4
 ) (
