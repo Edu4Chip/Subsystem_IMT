@@ -1,1 +1,16 @@
 # example of comment. generally ok as it is, but some tools require parser helper.
+sv/ascon-aead128/ascon_pack.sv
+sv/top_ascon.v
+sv/ascon_apb_wrapper.sv
+sv/ascon-aead128/ascon_core.sv
+sv/ascon-aead128/ascon_ctrl.sv
+sv/ascon-aead128/ascon_down_counter.sv
+sv/ascon-aead128/ascon_input_buffer.sv
+sv/ascon-aead128/ascon_input_padding.sv
+sv/ascon-aead128/ascon_output_buffer.sv
+sv/ascon-aead128/ascon_output_trunc.sv
+sv/ascon-aead128/ascon_permutation.sv
+sv/ascon-aead128/ascon_round_counter.sv
+sv/ascon-aead128/ascon_round_function.sv
+sv/ascon-aead128/ascon_round_unit.sv
+sv/ascon-aead128/ascon_size_decoder.sv
