@@ -1,0 +1,3 @@
+from .ascon_random_test import AsconRandomSampleEncTest
+from .ascon_ref_test import AsconFullRefEncTest, AsconSingleRefEncTest
+from .ascon_single_test import AsconSingleEncTest
