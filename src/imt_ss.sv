@@ -38,6 +38,9 @@ module imt_ss(
     output logic [15:0]  pmod_gpio_oe
   );
 
+  assign pmod_gpo[15:8]='h0;
+  assign pmod_gpio_oe[15:8]='h0;
+  
   top_ascon i_top_ascon(
     // Interface: APB
     .PADDR(PADDR),
@@ -59,14 +62,14 @@ module imt_ss(
     .reset_int(reset_int),
 
     // Interface: pmod_gpio_0
-    .pmod_0_gpi(pmod_0_gpi),
-    .pmod_0_gpio_oe(pmod_0_gpio_oe),
-    .pmod_0_gpo(pmod_0_gpo),
+    .pmod_0_gpi(pmod_gpi[3:0]),
+    .pmod_0_gpio_oe(pmod_gpio_oe[3:0]),
+    .pmod_0_gpo(pmod_gpo[3:0]),
 
     // Interface: pmod_gpio_1
-    .pmod_1_gpi(pmod_1_gpi),
-    .pmod_1_gpio_oe(pmod_1_gpio_oe),
-    .pmod_1_gpo(pmod_1_gpo),
+    .pmod_1_gpi(pmod_gpi[7:4]),
+    .pmod_1_gpio_oe(pmod_gpio_oe[7:4]),
+    .pmod_1_gpo(pmod_gpo[7:4]),
 
     // Interface: ss_ctrl
     .irq_en_1(irq_en_1),
